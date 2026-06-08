@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Kardex Individual | El Cardenal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { background: #f8f9fa; padding: 30px; font-family: 'Segoe UI', sans-serif; }
+        .report-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header-line { border-bottom: 3px solid #1a1d20; margin-bottom: 25px; padding-bottom: 15px; }
+        
+        /* CÓDIGO ESPECIAL PARA IMPRESIÓN PERFECTA */
+        @media print { 
+            @page { margin: 1.5cm; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 12px !important; }
+            .container, .report-container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+            .no-print { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            .table { width: 100% !important; border-collapse: collapse !important; }
+            .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container report-container">
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <a href="/reportes" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Volver</a>
+            <div>
+                <button onclick="window.print()" class="btn btn-dark btn-sm me-2"><i class="fas fa-print"></i> Imprimir</button>
+                <button type="button" onclick="exportarAExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+            </div>
+        </div>
+
+        <div class="header-line">
+            <p class="text-muted small fw-bold text-uppercase mb-1" id="fechaEmision"></p>
+            <h3 class="fw-bold text-uppercase"><i class="fas fa-user-circle text-primary me-2"></i> KARDEX INDIVIDUAL</h3>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Empleado:</strong> <span class="fw-bold">{{ emp.empleado }}</span></p>
+                    <p class="mb-1"><strong>Nómina:</strong> <span class="badge bg-secondary">{{ emp.nomina }}</span></p>
+                    <p class="mb-1"><strong>Sucursal:</strong> {{ emp.sucursal }}</p>
+                    <p class="mb-1"><strong>Fecha de Préstamo:</strong> {{ emp.fecha_otorgamiento }}</p>
+                </div>
+                <div class="col-md-6 text-end border-start">
+                    <h5 class="text-muted mb-1">Préstamo Inicial: <span class="text-dark fw-bold">${{ "{:,.2f}".format(emp.monto_inicial) }}</span></h5>
+                    <h4 class="mb-0">Saldo Pendiente: <span class="text-danger fw-bold">${{ "{:,.2f}".format(emp.saldo_pendiente) }}</span></h4>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="fw-bold mb-3 text-primary text-uppercase"><i class="fas fa-list-ol me-2"></i> Historial de Movimientos</h5>
+        <table class="table table-bordered table-striped text-center align-middle" id="tablaKardex">
+            <thead class="table-dark text-uppercase small">
+                <tr>
+                    <th>Semana</th>
+                    <th>Fecha de Pago</th>
+                    <th>Tipo de Movimiento</th>
+                    <th class="text-end">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total_abonos = namespace(valor=0) %}
+                {% for m in movimientos %}
+                    {% if m.tipo == 'ABONO' %}
+                        {% set total_abonos.valor = total_abonos.valor + m.monto %}
+                    {% endif %}
+                <tr>
+                    <td class="fw-bold">{{ m.semana }}</td>
+                    <td>{{ m.fecha }}</td>
+                    <td>
+                        {% if m.tipo == 'CARGO' %}
+                            <span class="text-primary fw-bold">CARGO INICIAL</span>
+                        {% else %}
+                            <span class="text-success fw-bold">ABONO</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold {{ 'text-primary' if m.tipo == 'CARGO' else 'text-success' }}">
+                        {{ '-' if m.tipo == 'ABONO' }}${{ "{:,.2f}".format(m.monto) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light border-top border-dark">
+                <tr>
+                    <td colspan="3" class="text-end fw-bold text-uppercase fs-6">TOTAL ABONADO HASTA HOY:</td>
+                    <td class="text-end fw-bold fs-6 text-success">${{ "{:,.2f}".format(total_abonos.valor) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+<script>
+const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+const fechaActual = new Date().toLocaleDateString('es-MX', opciones);
+document.getElementById('fechaEmision').innerHTML = '<i class="fas fa-clock me-1"></i> Generado el: ' + fechaActual;
+
+function exportarAExcel() {
+    let tabla = document.getElementById("tablaKardex").outerHTML;
+    
+    // TAMAÑO 8pt Y PADDING PARA HACER COLUMNAS ANCHAS
+    let estilos = `
+        <style>
+            body, table { font-family: 'Calibri', sans-serif; }
+            table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+            th { background-color: #1a1d20; color: #ffffff; font-weight: bold; border: 1pt solid #333; padding: 10px 40px; font-size: 8pt; text-align: center; }
+            td { border: 1pt solid #ccc; padding: 8px 40px; text-align: center; font-size: 8pt; font-weight: bold; }
+            tfoot td { background-color: #f8f9fa; color: #198754; font-weight: bold; font-size: 9pt; border-top: 2pt solid #000; text-align: right; }
+            .header-info { background-color: #f0f0f0; border: 1pt solid #333; padding: 15px; margin-bottom: 20px; }
+            .titulo-excel { font-size: 14pt; margin: 0; text-decoration: underline; font-weight: bold; }
+            .texto-excel { font-size: 8pt; margin: 5px 0; }
+        </style>
+    `;
+    let htmlCompleto = `
+        <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+        <head><meta charset="utf-8">${estilos}</head>
+        <body>
+            <div class="header-info">
+                <p class="titulo-excel">EL CARDENAL - KARDEX INDIVIDUAL</p>
+                <p class="texto-excel"><b>EMPLEADO:</b> {{ emp.empleado }} | <b>NÓMINA:</b> {{ emp.nomina }} | <b>SUCURSAL:</b> {{ emp.sucursal }}</p>
+                <p class="texto-excel" style="color: #c0392b;"><b>SALDO PENDIENTE ACTUAL: ${{ "{:,.2f}".format(emp.saldo_pendiente) }}</b></p>
+            </div>
+            ${tabla}
+        </body>
+        </html>
+    `;
+    
+    let blob = new Blob([htmlCompleto], { type: "application/vnd.ms-excel" });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "Kardex_{{ emp.nomina }}.xls";
+    document.body.appendChild(a); 
+    a.click();
+    document.body.removeChild(a); 
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

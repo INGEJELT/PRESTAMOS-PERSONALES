@@ -1,0 +1,5 @@
+reporte_historial.html (Historial de Préstamos Global)
+
+kardex_semana.html (Kardex por Semana)
+
+kardex_detalle.html (Kardex Individual)

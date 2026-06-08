@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo }} | El Cardenal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f8f9fa; padding: 30px; font-family: 'Segoe UI', sans-serif; }
+        .report-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header-line { border-bottom: 3px solid #1a1d20; margin-bottom: 25px; padding-bottom: 10px; }
+        @media print { .no-print { display: none; } body { background: white; } }
+    </style>
+</head>
+<body>
+    <div class="container-fluid report-container">
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <a href="/reportes" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Volver a Reportes</a>
+            <div>
+                <button onclick="window.print()" class="btn btn-dark btn-sm me-2"><i class="fas fa-print"></i> Imprimir</button>
+                <button onclick="exportarAExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Descargar Excel XL</button>
+            </div>
+        </div>
+
+        <div class="header-line">
+            <p class="text-muted fw-bold text-uppercase mb-1 small" id="fechaEmision"></p>
+            <h2 class="fw-bold mb-0">{{ titulo }}</h2>
+            <div class="d-flex justify-content-between mt-2">
+                <span class="badge bg-primary fs-6">Periodo: {{ f_inicio }} al {{ f_fin }}</span>
+                <span class="badge bg-dark fs-6">Sede: {{ sucursal }}</span>
+            </div>
+        </div>
+
+        <table class="table table-bordered table-striped align-middle" id="tablaReporte">
+            <thead class="table-dark text-uppercase small">
+                <tr>
+                    <th>Nómina</th>
+                    <th>Empleado</th>
+                    <th>Área</th>
+                    <th>Sede</th>
+                    <th class="text-center">Otorgado</th>
+                    <th class="text-end">Préstamo</th>
+                    <th class="text-end">Abonado</th>
+                    <th class="text-end">Pendiente</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in prestamos %}
+                <tr>
+                    <td class="fw-bold">{{ p.nomina }}</td>
+                    <td class="fw-bold">{{ p.empleado }}</td>
+                    <td>{{ p.area }}</td>
+                    <td>{{ p.sucursal }}</td>
+                    <td class="text-center">{{ p.fecha_otorgamiento }}</td>
+                    <td class="text-end">${{ "{:,.2f}".format(p.monto_inicial) }}</td>
+                    <td class="text-end text-success fw-bold">${{ "{:,.2f}".format(p.total_abonado) }}</td>
+                    <td class="text-end text-danger fw-bold">${{ "{:,.2f}".format(p.saldo_pendiente) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-secondary fw-bold">
+                <tr>
+                    <td colspan="5" class="text-end">TOTALES:</td>
+                    <td class="text-end">${{ "{:,.2f}".format(tot_inicial) }}</td>
+                    <td class="text-end text-success">${{ "{:,.2f}".format(tot_recuperado) }}</td>
+                    <td class="text-end text-danger">${{ "{:,.2f}".format(tot_pendiente) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+<script>
+    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    const fechaActual = new Date().toLocaleDateString('es-MX', opciones);
+    document.getElementById('fechaEmision').innerHTML = '<i class="fas fa-clock me-1"></i> Generado el: ' + fechaActual;
+
+    function exportarAExcel() {
+        let tabla = document.getElementById("tablaReporte").outerHTML;
+        let estilos = `
+            <style>
+                body, table { font-family: 'Calibri', sans-serif; }
+                table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+                th { background-color: #1a1d20; color: #ffffff; font-weight: bold; border: 1pt solid #000; padding: 15px 150px; font-size: 11pt; text-align: center; height: 45px; }
+                td { border: 1pt solid #999; padding: 12px 150px; text-align: center; font-size: 10pt; font-weight: bold; height: 40px; }
+                tfoot td { background-color: #eee; color: #198754; font-weight: bold; font-size: 12pt; text-align: right; border: 2pt solid #000; height: 45px; }
+            </style>
+        `;
+        let htmlCompleto = `
+            <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+            <head><meta charset="utf-8">${estilos}</head>
+            <body>
+                <h2 style="font-size: 18pt;">{{ titulo }}</h2>
+                <p style="font-size: 11pt;"><b>Generado:</b> ${fechaActual}</p>
+                <p style="font-size: 11pt;"><b>Sede:</b> {{ sucursal }} | <b>Periodo:</b> {{ f_inicio }} al {{ f_fin }}</p>
+                <br>
+                ${tabla}
+            </body>
+            </html>
+        `;
+        let blob = new Blob([htmlCompleto], { type: "application/vnd.ms-excel" });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "Reporte_Especial_{{ sucursal }}.xls";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+</script>
+</body>
+</html>

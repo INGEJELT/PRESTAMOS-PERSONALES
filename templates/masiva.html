@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Captura Masiva | El Cardenal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .input-abono { border: 1px solid #dee2e6; border-radius: 5px; padding: 5px 10px; width: 100%; }
+        .input-abono:focus { border-color: #f39c12; outline: none; box-shadow: 0 0 5px rgba(243,156,18,0.3); }
+        .sticky-header { position: sticky; top: 0; background: white; z-index: 100; border-bottom: 2px solid #eee; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid p-5">
+        <form action="/guardar_masivo" method="post">
+            <input type="hidden" name="semana" value="{{ semana }}">
+            <div class="d-flex justify-content-between align-items-center mb-4 sticky-header py-3">
+                <div>
+                    <h2 class="fw-bold mb-0">🦅 Captura Masiva: <span class="text-warning">Semana {{ semana }}</span></h2>
+                    <p class="text-muted mb-0">Ingresa los abonos de los colaboradores para esta semana.</p>
+                </div>
+                <div>
+                    <a href="/semana/{{ semana }}" class="btn btn-outline-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-dark btn-lg px-5 shadow">Guardar Cambios</button>
+                </div>
+            </div>
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-4 py-3">Colaborador</th>
+                            <th class="py-3">Saldo Actual</th>
+                            <th class="py-3" style="width: 250px;">Abono a Aplicar ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in empleados %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-secondary">{{ emp.empleado }}</td>
+                            <td class="text-muted">${{ "{:,.2f}".format(emp.saldo_pendiente) }}</td>
+                            <td>
+                                <input type="number" step="0.01" name="abono_{{ emp.id }}" class="form-control input-abono" placeholder="0.00">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
