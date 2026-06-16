@@ -24,6 +24,8 @@
         .arqueo-card.danger { border-left-color: #dc3545; }
         .arqueo-card .badge-estatus { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; }
         .arqueo-user-card { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 4px solid #007bff; }
+        .filter-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .filter-group .form-switch { margin: 0; }
     </style>
 </head>
 <body>
@@ -245,9 +247,15 @@
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                     <input type="text" id="busqueda" class="form-control border-start-0 ps-0" placeholder="Buscar por nómina o nombre..." onkeyup="filtrarTabla()">
                 </div>
-                <div class="form-check form-switch fs-5 ms-4 border p-2 rounded bg-light shadow-sm w-25 text-center">
-                    <input class="form-check-input ms-0 me-2" type="checkbox" id="filtroActivos" onchange="filtrarTabla()">
-                    <label class="form-check-label fw-bold text-primary small" for="filtroActivos"><i class="fas fa-filter me-1"></i> Ocultar sin Abono</label>
+                <div class="filter-group">
+                    <div class="form-check form-switch fs-6 border p-2 rounded bg-light shadow-sm">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="filtroActivos" onchange="filtrarTabla()">
+                        <label class="form-check-label fw-bold text-primary small" for="filtroActivos"><i class="fas fa-filter me-1"></i> Ocultar sin Abono</label>
+                    </div>
+                    <div class="form-check form-switch fs-6 border p-2 rounded bg-light shadow-sm">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="filtroDeuda" onchange="filtrarTabla()">
+                        <label class="form-check-label fw-bold text-danger small" for="filtroDeuda"><i class="fas fa-dollar-sign me-1"></i> Solo con Adeudo</label>
+                    </div>
                 </div>
             </div>
 
@@ -295,7 +303,7 @@
                                 <span class="text-success fw-bold">${{ "{:,.2f}".format(emp.abono_semana) }}</span>
                             {% else %}<span class="text-muted small fw-bold">-</span>{% endif %}
                         </td>
-                        <td class="text-danger fw-bold">${{ "{:,.2f}".format(emp.saldo_pendiente) }}</td>
+                        <td class="text-danger fw-bold saldo-cell">${{ "{:,.2f}".format(emp.saldo_pendiente) }}</td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end align-items-center">
                                 {% if admin %}
@@ -514,6 +522,7 @@
 function filtrarTabla() {
     let input = document.getElementById("busqueda").value.toUpperCase();
     let switchActivos = document.getElementById("filtroActivos") ? document.getElementById("filtroActivos").checked : false;
+    let switchDeuda = document.getElementById("filtroDeuda") ? document.getElementById("filtroDeuda").checked : false;
     let tr = document.getElementById("tablaEmpleados").getElementsByTagName("tr");
     
     for (let i = 1; i < tr.length; i++) {
@@ -527,15 +536,30 @@ function filtrarTabla() {
             let nombre = tdNombre.textContent.toUpperCase();
             let coincideBusqueda = (id.indexOf(input) > -1 || nomina.indexOf(input) > -1 || nombre.indexOf(input) > -1);
             
-            // CORRECCIÓN: índice de "Abono Sem." es 12 (no 13)
-            let tdSemana = tr[i].getElementsByTagName("td")[12];
+            // COLUMNAS CORRECTAS: Abono Sem. = índice 12, Saldo = índice 13
+            let tdSemana = tr[i].getElementsByTagName("td")[12]; // Abono Sem.
+            let tdSaldo = tr[i].getElementsByTagName("td")[13]; // Saldo
+            
             let tieneAbono = tdSemana && tdSemana.querySelector('.text-success') !== null;
-
-            if (switchActivos) {
-                tr[i].style.display = (coincideBusqueda && tieneAbono) ? "" : "none";
-            } else {
-                tr[i].style.display = coincideBusqueda ? "" : "none";
+            
+            let saldo = 0;
+            if (tdSaldo) {
+                let saldoText = tdSaldo.textContent.replace('$', '').replace(/,/g, '').trim();
+                saldo = parseFloat(saldoText) || 0;
             }
+            let tieneDeuda = saldo > 0;
+            
+            let mostrar = coincideBusqueda;
+            
+            if (switchActivos) {
+                mostrar = mostrar && tieneAbono;
+            }
+            
+            if (switchDeuda) {
+                mostrar = mostrar && tieneDeuda;
+            }
+            
+            tr[i].style.display = mostrar ? "" : "none";
         }
     }
 }
