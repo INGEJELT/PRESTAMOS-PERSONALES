@@ -15,6 +15,15 @@
         .card-total { border: none; border-radius: 12px; border-left: 5px solid; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .card-caja { border: none; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border-top: 4px solid; }
         .input-abono { width: 95px; text-align: right; font-weight: bold; border: 2px solid #ced4da; border-radius: 6px; }
+        .modal-confirm .modal-header { background: #1a1d20; color: white; }
+        .modal-confirm .modal-footer { background: #f8f9fa; }
+        .modal-confirm .list-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+        .modal-confirm .list-item:last-child { border-bottom: none; }
+        .modal-confirm .total-row { background: #e9ecef; font-weight: bold; padding: 10px; border-radius: 5px; }
+        .arqueo-card { background: white; border-radius: 10px; padding: 15px; border-left: 4px solid #28a745; }
+        .arqueo-card.danger { border-left-color: #dc3545; }
+        .arqueo-card .badge-estatus { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; }
+        .arqueo-user-card { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 4px solid #007bff; }
     </style>
 </head>
 <body>
@@ -29,12 +38,20 @@
         <a href="/graficas" class="btn btn-outline-info border-0 py-2 text-start">
             <i class="fas fa-chart-bar me-2"></i> {% if admin %}Gráficas por Sede{% else %}Mi Gráfica{% endif %}
         </a>
+        {% if admin %}
+        <a href="/resumen_empresa" class="btn btn-outline-primary border-0 py-2 text-start">
+            <i class="fas fa-building me-2"></i> Resumen por Empresa
+        </a>
+        {% endif %}
         <a href="{{ url_for('static', filename='manual_prestamos.pdf') }}" target="_blank" class="btn btn-outline-light border-0 py-2">
             <i class="fas fa-book me-2 text-warning"></i> Manual de Ayuda
         </a>
         {% if admin %}
         <button class="btn btn-outline-info border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalUsuarios"><i class="fas fa-users-cog me-2"></i> Usuarios</button>
         <button class="btn btn-outline-success border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalExcel"><i class="fas fa-file-excel me-2"></i> Importar Masiva</button>
+        <button class="btn btn-outline-secondary border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalSincronizar">
+            <i class="fas fa-sync-alt me-2"></i> Sincronizar Empleados
+        </button>
         <button class="btn btn-warning text-dark fw-bold btn-sm mt-4 shadow" data-bs-toggle="modal" data-bs-target="#modalAnio"><i class="fas fa-sync-alt me-2"></i> TRASPASO ANUAL</button>
         {% endif %}
         <hr class="opacity-25 mt-5">
@@ -87,25 +104,93 @@
         </div>
     </div>
 
+    <!-- SECCIÓN: ÚLTIMO ARQUEO - ADMIN -->
     {% if admin %}
-    <div class="row mb-4 align-items-center">
-        <div class="col-12 d-flex justify-content-between mb-2">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center mb-2">
             <h6 class="fw-bold text-muted small text-uppercase"><i class="fas fa-vault me-1"></i> Fondos Iniciales</h6>
             <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalFondo">Fondo Inicial</button>
         </div>
-        {% for c in cajas %}
-        <div class="col-md-2 mb-2">
-            <div class="card p-2 text-center card-caja {{ 'border-success' if c.saldo_actual > 0 else 'border-danger' }}">
-                <small class="fw-bold text-muted d-block text-truncate">{{ c.sucursal }}</small>
-                <span class="fw-bold fs-6 text-dark">${{ "{:,.2f}".format(c.saldo_actual) }}</span>
+        
+        <div class="row">
+            {% for c in cajas %}
+            <div class="col-md-2 mb-3">
+                <div class="card p-2 text-center card-caja {{ 'border-success' if c.saldo_actual > 0 else 'border-danger' }}" style="border-top-width: 4px; border-top-style: solid;">
+                    <small class="fw-bold text-muted d-block text-truncate">{{ c.sucursal }}</small>
+                    <span class="fw-bold fs-6 text-dark">${{ "{:,.2f}".format(c.saldo_actual) }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="row mt-2">
+            <div class="col-12">
+                <h6 class="fw-bold text-muted small text-uppercase mt-2"><i class="fas fa-cash-register me-1"></i> Último Arqueo por Sucursal</h6>
+            </div>
+            {% for c in cajas %}
+            {% set arqueo = ultimos_arqueos_dict.get(c.sucursal) %}
+            <div class="col-md-2 mb-2">
+                <div class="card p-2 text-center border-0 shadow-sm" style="background-color: #f8f9fa; border-left: 4px solid {{ '#28a745' if arqueo and arqueo.diferencia == 0 else '#dc3545' }};">
+                    <small class="fw-bold text-muted d-block text-truncate">{{ c.sucursal }}</small>
+                    {% if arqueo %}
+                        <div class="small">
+                            <span class="fw-bold text-primary">Efectivo: ${{ "{:,.2f}".format(arqueo.efectivo_real) }}</span><br>
+                            <span class="fw-bold {{ 'text-success' if arqueo.diferencia == 0 else 'text-danger' }}">
+                                Dif: ${{ "{:,.2f}".format(arqueo.diferencia) }}
+                            </span>
+                            <span class="badge {{ 'bg-success' if arqueo.diferencia == 0 else 'bg-danger' }} badge-estatus d-block mt-1">
+                                {{ '✓ CUADRADO' if arqueo.diferencia == 0 else '✗ DIFERENCIA' }}
+                            </span>
+                            <small class="text-muted d-block">Semana {{ arqueo.semana }}</small>
+                        </div>
+                    {% else %}
+                        <div class="small text-muted">Sin arqueo</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SECCIÓN: ÚLTIMO ARQUEO - USUARIO NORMAL (NO ADMIN) -->
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-cash-register me-2"></i> Último Arqueo - {{ session.get('sucursal') }}</h6>
+                </div>
+                <div class="card-body p-3">
+                    {% set arqueo = ultimos_arqueos_dict.get(session.get('sucursal')) %}
+                    {% if arqueo %}
+                        <div class="arqueo-user-card d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-muted">Fecha:</span> {{ arqueo.fecha.split(' ')[0] }} &nbsp;|&nbsp;
+                                <span class="fw-bold text-muted">Semana:</span> {{ arqueo.semana }} &nbsp;|&nbsp;
+                                <span class="fw-bold text-muted">Efectivo:</span> <span class="text-primary">${{ "{:,.2f}".format(arqueo.efectivo_real) }}</span>
+                            </div>
+                            <div>
+                                <span class="fw-bold {{ 'text-success' if arqueo.diferencia == 0 else 'text-danger' }}">
+                                    Diferencia: ${{ "{:,.2f}".format(arqueo.diferencia) }}
+                                </span>
+                                <span class="badge {{ 'bg-success' if arqueo.diferencia == 0 else 'bg-danger' }} ms-2">
+                                    {{ 'CUADRADO' if arqueo.diferencia == 0 else 'DIFERENCIA' }}
+                                </span>
+                                <small class="text-muted ms-2">({{ arqueo.usuario }})</small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i> No hay arqueos registrados para tu sucursal.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        {% endfor %}
     </div>
     {% endif %}
 
-    <form action="/registrar_abono" method="post">
+    <form action="/registrar_abono" method="post" id="formAbonos">
         <input type="hidden" name="sucursal_act" value="{{ suc_act }}">
+        <input type="hidden" name="semana_act" id="semana_act_hidden" value="{{ semana_act }}">
         
         <div class="bg-white rounded-4 shadow-sm p-4 mb-4 border-top border-primary border-4">
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
@@ -141,14 +226,16 @@
 
                     <div class="text-center border-start ps-2">
                         <label class="small fw-bold text-primary text-uppercase">Semana de Carga</label>
-                        <select name="semana_act" class="form-select border-primary shadow-sm fw-bold" style="width: 100px;">
+                        <select name="semana_act_display" id="semana_act_display" class="form-select border-primary shadow-sm fw-bold" style="width: 100px;" onchange="document.getElementById('semana_act_hidden').value = this.value;">
                             {% for i in range(1, 53) %}
                                 <option value="{{ i }}" {{ 'selected' if i == semana_act }} {{ 'disabled' if not admin and i < semana_real }}>{{ i }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow">PROCESAR ABONOS</button>
+                    <button type="button" class="btn btn-primary fw-bold px-4 shadow" id="btnProcesarAbonos">
+                        <i class="fas fa-check-circle me-2"></i> PROCESAR ABONOS
+                    </button>
                     <button type="button" class="btn btn-success fw-bold px-4 shadow" data-bs-toggle="modal" data-bs-target="#modalNuevo">NUEVO</button>
                 </div>
             </div>
@@ -172,10 +259,12 @@
                         <th>Nómina</th>
                         <th>Empleado</th>
                         <th>Sucursal</th>
-                        <th>Área</th>
+                        <th>DEPARTAMENTO</th>
+                        <th>PUESTO</th>
                         <th>Préstamo</th>
+                        <th>Fecha Ingreso</th>
+                        <th>Fecha Alta Préstamo</th>
                         <th class="text-center text-primary">Sem. Otorgado</th>
-                        <th class="text-center text-primary">Fecha</th> 
                         <th class="text-center">Últ. Sem.</th>
                         <th class="text-center">Abono Sem.</th>
                         <th>Saldo</th>
@@ -185,15 +274,17 @@
                 <tbody>
                     {% for emp in empleados %}
                     <tr>
-                        <td><input type="checkbox" name="seleccionar_empleado" value="{{ emp.id }}" class="form-check-input"></td>
+                        <td><input type="checkbox" name="seleccionar_empleado" value="{{ emp.id }}" class="form-check-input cb-empleado"></td>
                         <td class="fw-bold text-primary">{{ emp.id_empleado or 'N/A' }}</td>
                         <td class="text-muted fw-bold">{{ emp.nomina }}</td>
-                        <td class="fw-bold">{{ emp.empleado }}</td>
+                        <td class="fw-bold empleado-nombre">{{ emp.empleado }}</td>
                         <td><span class="badge bg-info text-dark">{{ emp.sucursal }}</span></td>
                         <td class="text-muted small fw-bold">{{ emp.area }}</td>
+                        <td class="text-muted small fw-bold">{{ emp.puesto or 'N/A' }}</td>
                         <td>${{ "{:,.2f}".format(emp.monto_inicial) }}</td>
+                        <td class="text-muted">{{ emp.fecha_ingreso or 'N/A' }}</td>
+                        <td class="text-muted">{{ emp.fecha_otorgamiento }}</td>
                         <td class="text-center"><span class="badge bg-secondary">Sem {{ emp.semana_otorgamiento }}</span></td>
-                        <td class="text-center text-muted fw-bold small">{{ emp.fecha_otorgamiento }}</td>
                         <td class="text-center">
                             {% if emp.ultima_semana %}
                                 <span class="badge bg-primary">Sem {{ emp.ultima_semana }}</span>
@@ -212,7 +303,7 @@
                                     <a href="/auditar_abonos/{{ emp.id }}" class="btn btn-outline-primary btn-sm px-2 py-0 me-2" title="Auditar"><i class="fas fa-search-dollar"></i></a>
                                     <a href="/eliminar_empleado/{{ emp.id }}" class="btn btn-outline-danger btn-sm px-2 py-0 me-2" onclick="return confirm('¿Eliminar definitivamente?');"><i class="fas fa-trash"></i></a>
                                 {% endif %}
-                                <input type="number" step="0.01" name="monto_abono_{{ emp.id }}" class="input-abono" placeholder="0.00">
+                                <input type="number" step="0.01" name="monto_abono_{{ emp.id }}" class="input-abono monto-abono" placeholder="0.00" min="0">
                             </div>
                         </td>
                     </tr>
@@ -223,7 +314,48 @@
     </form>
 </div>
 
-<!-- Modal Nuevo Préstamo (sin cambios) -->
+<!-- Modal de Confirmación de Abonos (profesional) -->
+<div class="modal fade modal-confirm" id="modalConfirmarAbonos" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2 text-success"></i> Confirmar Procesamiento de Abonos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-calendar-alt me-2"></i> <strong>Semana de Procesamiento:</strong> <span id="confirmSemana" class="badge bg-primary fs-6">-</span>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="fw-bold text-muted"><i class="fas fa-users me-2"></i> Empleados seleccionados:</h6>
+                    <div id="listaEmpleadosConfirm" class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Aquí se llenarán los empleados con sus montos -->
+                    </div>
+                </div>
+                
+                <div class="total-row d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="fas fa-calculator me-2"></i> Total de empleados a procesar:</span>
+                    <span id="totalEmpleadosConfirm" class="badge bg-dark fs-5">0</span>
+                </div>
+                <div class="total-row d-flex justify-content-between align-items-center mt-2">
+                    <span class="fw-bold"><i class="fas fa-dollar-sign me-2"></i> Monto total a abonar:</span>
+                    <span id="totalMontoConfirm" class="fw-bold text-success fs-4">$0.00</span>
+                </div>
+                
+                <div class="mt-3 text-muted small">
+                    <i class="fas fa-info-circle me-1"></i> Al confirmar, los abonos se aplicarán a los empleados seleccionados y se actualizarán los saldos.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i> Cancelar</button>
+                <button type="button" class="btn btn-success fw-bold px-4" id="btnConfirmarAbonos"><i class="fas fa-check me-2"></i> Confirmar y Procesar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Préstamo -->
 <div class="modal fade" id="modalNuevo" tabindex="-1">
     <div class="modal-dialog">
         <form action="/nuevo_prestamo" method="post" class="modal-content">
@@ -238,23 +370,29 @@
                     <input type="text" name="sucursal" class="form-control bg-light fw-bold mb-3" value="{{ sucursal_usuario }}" readonly>
                 {% endif %}
 
-                <label class="small fw-bold text-muted">Nómina (selecciona de la lista)</label>
-                <input type="text" name="nomina" id="nomina_nuevo" class="form-control mb-2 input-nomina-auto" placeholder="Escribe o selecciona - Nómina" list="lista_nominas_global" autocomplete="off" required>
+                <label class="small fw-bold text-muted">Nómina (selecciona de la lista - obligatorio)</label>
+                <input type="text" name="nomina" id="nomina_nuevo" class="form-control mb-2 input-nomina-auto" placeholder="Selecciona una nómina de la lista" list="lista_nominas_global" autocomplete="off" required>
                 
                 <label class="small fw-bold text-muted">Nombre del Empleado</label>
                 <input type="text" name="nombre" id="nombre_nuevo" class="form-control mb-2 input-nombre-auto" placeholder="Se autocompleta" readonly required>
                 
+                <label class="small fw-bold text-muted">PUESTO</label>
+                <input type="text" name="puesto" id="puesto_nuevo" class="form-control mb-2" placeholder="Se autocompleta" readonly>
+                
+                <label class="small fw-bold text-muted">DEPARTAMENTO</label>
+                <input type="text" name="area" id="area_nuevo" class="form-control mb-2" placeholder="Se autocompleta" readonly required>
+                
                 <label class="small fw-bold text-primary">ID Asignado (se genera automáticamente)</label>
                 <input type="text" name="id_empleado" id="id_empleado_nuevo" class="form-control mb-2" placeholder="Ej. NA001" readonly>
                 
-                <label class="small fw-bold text-muted">Área</label>
-                <input type="text" name="area" class="form-control mb-2" placeholder="Área" required>
-                
                 <label class="small fw-bold text-danger">Monto del Préstamo ($)</label>
                 <input type="number" step="0.01" name="monto" class="form-control mb-2" placeholder="Monto" required>
+
+                <label class="small fw-bold text-muted">Fecha Ingreso (Empleado)</label>
+                <input type="date" name="fecha_ingreso" id="fecha_ingreso_nuevo" class="form-control mb-2" value="" placeholder="AAAA-MM-DD" readonly>
                 
-                <label class="small fw-bold text-muted">Fecha de Otorgamiento</label>
-                <input type="date" name="fecha_otorgamiento" class="form-control mb-3" required>
+                <label class="small fw-bold text-muted">Fecha Alta Préstamo</label>
+                <input type="date" name="fecha_otorgamiento" class="form-control mb-2" value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
                 
                 <label class="small fw-bold text-primary">¿Quién autoriza?</label>
                 <input type="text" name="autoriza" class="form-control mb-2 border-primary" placeholder="Ej. Gerente de RH" required>
@@ -267,7 +405,7 @@
     </div>
 </div>
 
-<!-- Modal Editar Préstamo CON LISTA DESPLEGABLE MEJORADA -->
+<!-- Modal Editar Préstamo -->
 {% if admin %}
 {% for emp in empleados %}
 <div class="modal fade" id="modalEditarPrestamo{{ emp.id }}" tabindex="-1">
@@ -276,22 +414,22 @@
             <div class="modal-header bg-warning text-dark"><h5 class="fw-bold mb-0"><i class="fas fa-user-edit"></i> Editar: {{ emp.empleado }}</h5></div>
             <div class="modal-body p-4">
                 <input type="hidden" name="prestamo_id" value="{{ emp.id }}">
-
                 <label class="small fw-bold text-primary">ID Empleado (único)</label>
                 <input type="text" name="id_empleado_display" class="form-control mb-2" value="{{ emp.id_empleado or 'N/A' }}" readonly>
-
                 <label class="small fw-bold text-muted">Nómina (selecciona de la lista)</label>
                 <input type="text" name="nomina" id="nomina_edit_{{ emp.id }}" class="form-control mb-2 input-nomina-auto-edit" value="{{ emp.nomina }}" list="lista_nominas_global_edit" autocomplete="off" required>
-                
                 <label class="small fw-bold text-muted">Nombre del Empleado</label>
                 <input type="text" name="empleado" id="nombre_edit_{{ emp.id }}" class="form-control mb-2 input-nombre-auto-edit" value="{{ emp.empleado }}" required>
-                
-                <label class="small fw-bold text-muted">Área</label>
-                <input type="text" name="area" class="form-control mb-2" value="{{ emp.area }}">
-                
+                <label class="small fw-bold text-muted">PUESTO</label>
+                <input type="text" name="puesto" class="form-control mb-2" value="{{ emp.puesto or '' }}" readonly>
+                <label class="small fw-bold text-muted">DEPARTAMENTO</label>
+                <input type="text" name="area" class="form-control mb-2" value="{{ emp.area }}" readonly>
                 <label class="small fw-bold text-danger mt-2">Monto Inicial ($)</label>
                 <input type="number" step="0.01" name="monto_inicial" class="form-control border-danger fw-bold text-danger" value="{{ emp.monto_inicial }}" required>
-                
+                <label class="small fw-bold text-muted mt-2">Fecha Ingreso (Empleado)</label>
+                <input type="date" name="fecha_ingreso" class="form-control mb-2" value="{{ emp.fecha_ingreso or '' }}" readonly>
+                <label class="small fw-bold text-muted mt-2">Fecha Alta Préstamo</label>
+                <input type="date" name="fecha_otorgamiento" class="form-control mb-2" value="{{ emp.fecha_otorgamiento }}" required>
                 <label class="small fw-bold text-primary mt-2">¿Quién Autoriza?</label>
                 <input type="text" name="autoriza" class="form-control" value="{{ emp.autoriza }}">
             </div>
@@ -300,6 +438,38 @@
     </div>
 </div>
 {% endfor %}
+
+<!-- Modal Sincronizar Empleados -->
+<div class="modal fade" id="modalSincronizar" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/sincronizar_empleados" method="post" class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="fw-bold"><i class="fas fa-sync-alt me-2"></i> Sincronizar Datos de Empleados</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">
+                    Esta acción actualizará el <b>DEPARTAMENTO</b>, el <b>PUESTO</b> y la <b>Fecha Ingreso</b> de todos los préstamos existentes,
+                    según la información contenida en los archivos Excel de cada sucursal.
+                </p>
+                <label class="small fw-bold text-muted">Selecciona la sucursal a sincronizar (o TODAS)</label>
+                <select name="sucursal_sync" class="form-select mb-3">
+                    <option value="TODAS">TODAS LAS SEDES</option>
+                    {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Esta operación puede tomar unos segundos. No afecta montos ni abonos.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary fw-bold">Sincronizar Ahora</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Los demás modales (Fondo, Excel, Usuarios, Traspaso) se mantienen igual -->
 <div class="modal fade" id="modalFondo" tabindex="-1"><div class="modal-dialog"><form action="/configurar_fondo" method="post" class="modal-content"><div class="modal-header bg-dark text-white"><h5>Configurar Fondo</h5></div><div class="modal-body p-4"><select name="sucursal_caja" class="form-select mb-3">{% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}</select><input type="number" step="0.01" name="monto_inicial" class="form-control" required></div><div class="modal-footer"><button type="submit" class="btn btn-primary w-100 shadow">ESTABLECER</button></div></form></div></div>
@@ -313,7 +483,7 @@
             <div class="modal-body p-4">
                 <table class="table align-middle text-center table-bordered">
                     <thead><tr><th>Usuario</th><th>Sucursal</th><th>Acciones</th></tr></thead>
-                    <tbody>{% for u in usuarios %}<tr><td>{{ u.username }}</td><td>{{ u.sucursal }}</td><td><button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditarUsuario{{ u.id }}">Editar</button> <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-danger btn-sm">Borrar</a></td></tr>{% endfor %}</tbody>
+                    <tbody>{% for u in usuarios %}<tr><td>{{ u.username }}</td><td>{{ u.sucursal }}</td><td><button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditarUsuario{{ u.id }}">Editar</button> <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-danger btn-sm">Borrar</a>辍</td>{% endfor %}</tbody>
                 </table>
                 <form action="/crear_usuario" method="post" class="row mt-4">
                     <div class="col-md-4"><input type="text" name="username" class="form-control" placeholder="Usuario" required></div>
@@ -357,7 +527,8 @@ function filtrarTabla() {
             let nombre = tdNombre.textContent.toUpperCase();
             let coincideBusqueda = (id.indexOf(input) > -1 || nomina.indexOf(input) > -1 || nombre.indexOf(input) > -1);
             
-            let tdSemana = tr[i].getElementsByTagName("td")[10];
+            // CORRECCIÓN: índice de "Abono Sem." es 12 (no 13)
+            let tdSemana = tr[i].getElementsByTagName("td")[12];
             let tieneAbono = tdSemana && tdSemana.querySelector('.text-success') !== null;
 
             if (switchActivos) {
@@ -374,7 +545,69 @@ function seleccionarTodo(source) {
     for(let i=0; i<cb.length; i++) cb[i].checked = source.checked;
 }
 
-// --- AUTOCOMPLETADO GENERAL (para nuevo préstamo) ---
+// Confirmación de abonos (modal)
+document.addEventListener('DOMContentLoaded', function() {
+    const btnProcesar = document.getElementById('btnProcesarAbonos');
+    const modalConfirm = new bootstrap.Modal(document.getElementById('modalConfirmarAbonos'));
+    const listaEmpleados = document.getElementById('listaEmpleadosConfirm');
+    const totalEmpleadosSpan = document.getElementById('totalEmpleadosConfirm');
+    const totalMontoSpan = document.getElementById('totalMontoConfirm');
+    const confirmSemana = document.getElementById('confirmSemana');
+    const btnConfirmar = document.getElementById('btnConfirmarAbonos');
+    const formAbonos = document.getElementById('formAbonos');
+
+    btnProcesar.addEventListener('click', function() {
+        const semanaSelect = document.getElementById('semana_act_display');
+        const semana = semanaSelect ? semanaSelect.value : document.getElementById('semana_act_hidden').value;
+        
+        let empleadosSeleccionados = [];
+        let totalMonto = 0;
+        const checkboxes = document.querySelectorAll('.cb-empleado:checked');
+        
+        checkboxes.forEach(cb => {
+            const tr = cb.closest('tr');
+            const nombre = tr.querySelector('.empleado-nombre')?.textContent?.trim() || 'Desconocido';
+            const inputMonto = tr.querySelector('.monto-abono');
+            const monto = parseFloat(inputMonto?.value) || 0;
+            
+            if (monto > 0) {
+                empleadosSeleccionados.push({ nombre, monto });
+                totalMonto += monto;
+            }
+        });
+
+        if (empleadosSeleccionados.length === 0) {
+            alert('⚠️ No has seleccionado empleados con montos válidos (mayores a $0.00).');
+            return;
+        }
+
+        confirmSemana.textContent = 'Semana ' + semana;
+        
+        let html = '';
+        empleadosSeleccionados.forEach((emp, index) => {
+            html += `
+                <div class="list-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-secondary me-2">${index + 1}</span>
+                        <strong>${emp.nombre}</strong>
+                    </div>
+                    <span class="fw-bold text-success">$${emp.monto.toFixed(2)}</span>
+                </div>
+            `;
+        });
+        listaEmpleados.innerHTML = html;
+        totalEmpleadosSpan.textContent = empleadosSeleccionados.length;
+        totalMontoSpan.textContent = '$' + totalMonto.toFixed(2);
+
+        modalConfirm.show();
+    });
+
+    btnConfirmar.addEventListener('click', function() {
+        formAbonos.submit();
+    });
+});
+
+// --- AUTOCOMPLETADO GENERAL ---
 let datosEmpleadosGlobal = [];
 
 function cargarEmpleadosDesdeExcel(sucursal, targetDatalistId = 'lista_nominas_global') {
@@ -409,6 +642,9 @@ document.addEventListener('DOMContentLoaded', function() {
             cargarEmpleadosDesdeExcel(this.value, 'lista_nominas_global');
             document.getElementById('nomina_nuevo').value = '';
             document.getElementById('nombre_nuevo').value = '';
+            document.getElementById('puesto_nuevo').value = '';
+            document.getElementById('area_nuevo').value = '';
+            document.getElementById('fecha_ingreso_nuevo').value = '';
             document.getElementById('id_empleado_nuevo').value = '';
         });
         cargarEmpleadosDesdeExcel(sucursalNuevoSelect.value, 'lista_nominas_global');
@@ -419,36 +655,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Autocompletado para cada modal de edición (se cargará dinámicamente al abrir el modal)
-    // Vamos a precargar los datalist de edición según la sucursal del empleado
+    // Autocompletado para cada modal de edición
     const editModals = document.querySelectorAll('[id^="modalEditarPrestamo"]');
     editModals.forEach(modal => {
         modal.addEventListener('show.bs.modal', function(event) {
-            // Obtener la sucursal del empleado desde la fila correspondiente
-            let button = event.relatedTarget; // botón que abrió el modal
+            let button = event.relatedTarget;
             let row = button.closest('tr');
-            let sucursalCell = row.cells[4]; // columna Sucursal (índice 4)
+            let sucursalCell = row.cells[4];
             let sucursal = sucursalCell.innerText.trim();
             if (sucursal && sucursal !== 'TODAS') {
                 cargarEmpleadosDesdeExcel(sucursal, 'lista_nominas_global_edit');
             } else {
-                // Limpiar datalist si es TODAS
                 let datalist = document.getElementById('lista_nominas_global_edit');
                 if (datalist) datalist.innerHTML = '';
             }
         });
     });
 
-    // Autocompletar nombre en el modal de edición (evento input sobre los campos de nómina)
+    // Autocompletar nombre, puesto, departamento y fecha ingreso en el modal de edición
     document.addEventListener('input', function(e) {
         if (e.target.classList && e.target.classList.contains('input-nomina-auto-edit')) {
             let form = e.target.closest('form');
             let inputNombre = form ? form.querySelector('.input-nombre-auto-edit') : null;
+            let inputPuesto = form ? form.querySelector('input[name="puesto"]') : null;
+            let inputArea = form ? form.querySelector('input[name="area"]') : null;
+            let inputFechaIngreso = form ? form.querySelector('input[name="fecha_ingreso"]') : null;
             let valorSeleccionado = e.target.value;
-            
-            // Buscar el empleado que coincide con "NOMINA - NOMBRE" en el datalist de edición
-            // Para ello, necesitamos los datos cargados actualmente en el datalist. Usaremos una variable global o leer el datalist.
-            // Como los datos de edición son dinámicos, podemos leer las opciones del datalist 'lista_nominas_global_edit'
             let datalistEdit = document.getElementById('lista_nominas_global_edit');
             let opciones = [];
             if (datalistEdit) {
@@ -459,47 +691,59 @@ document.addEventListener('DOMContentLoaded', function() {
             let empleadoEncontrado = null;
             for (let optVal of opciones) {
                 if (optVal === valorSeleccionado) {
-                    // Extraer nomina y nombre
                     let parts = optVal.split(' - ');
                     if (parts.length === 2) {
-                        empleadoEncontrado = { nomina: parts[0], nombre: parts[1] };
+                        let emp = datosEmpleadosGlobal.find(e => `${e.nomina} - ${e.nombre}` === optVal);
+                        if (emp) {
+                            empleadoEncontrado = emp;
+                        }
                         break;
                     }
                 }
             }
-            if (empleadoEncontrado && inputNombre) {
-                inputNombre.value = empleadoEncontrado.nombre;
-                e.target.value = empleadoEncontrado.nomina; // Dejar solo la nómina
-            } else {
-                // Si no se encuentra, intentar buscar por nomina exacta en los datos globales (aunque los datos de edición son específicos de sucursal)
-                // Por simplicidad, no hacemos nada.
+            if (empleadoEncontrado) {
+                if (inputNombre) inputNombre.value = empleadoEncontrado.nombre;
+                if (inputPuesto) inputPuesto.value = empleadoEncontrado.puesto || '';
+                if (inputArea) inputArea.value = empleadoEncontrado.departamento || '';
+                if (inputFechaIngreso) inputFechaIngreso.value = empleadoEncontrado.fecha_ingreso || '';
+                e.target.value = empleadoEncontrado.nomina;
             }
         }
     });
     
-    // Autocompletado para el modal NUEVO (ya existente)
+    // Autocompletado para el modal NUEVO (incluye PUESTO, DEPARTAMENTO y Fecha Ingreso)
     document.addEventListener('input', function(e) {
-        if (e.target.classList && e.target.classList.contains('input-nomina-auto') && e.target.id !== '') { // evitar conflictos con edit
+        if (e.target.classList && e.target.classList.contains('input-nomina-auto') && e.target.id !== '') {
             let form = e.target.closest('form');
             let inputNombre = form ? form.querySelector('.input-nombre-auto') : null;
             let inputId = form ? form.querySelector('#id_empleado_nuevo') : null;
+            let inputPuesto = form ? form.querySelector('#puesto_nuevo') : null;
+            let inputArea = form ? form.querySelector('#area_nuevo') : null;
+            let inputFechaIngreso = form ? form.querySelector('#fecha_ingreso_nuevo') : null;
             let valorSeleccionado = e.target.value;
-            
             let empleadoEncontrado = datosEmpleadosGlobal.find(emp => 
                 `${emp.nomina} - ${emp.nombre}` === valorSeleccionado
             );
-            
             if (empleadoEncontrado) {
                 if (inputNombre) inputNombre.value = empleadoEncontrado.nombre;
+                if (inputPuesto) inputPuesto.value = empleadoEncontrado.puesto || '';
+                if (inputArea) inputArea.value = empleadoEncontrado.departamento || '';
+                if (inputFechaIngreso) inputFechaIngreso.value = empleadoEncontrado.fecha_ingreso || '';
                 if (inputId) inputId.value = "Se generará automáticamente al guardar";
                 e.target.value = empleadoEncontrado.nomina;
             } else {
                 let empPorNomina = datosEmpleadosGlobal.find(emp => emp.nomina === valorSeleccionado);
                 if (empPorNomina && inputNombre) {
                     inputNombre.value = empPorNomina.nombre;
+                    if (inputPuesto) inputPuesto.value = empPorNomina.puesto || '';
+                    if (inputArea) inputArea.value = empPorNomina.departamento || '';
+                    if (inputFechaIngreso) inputFechaIngreso.value = empPorNomina.fecha_ingreso || '';
                     if (inputId) inputId.value = "Se generará automáticamente al guardar";
                 } else if (inputNombre && valorSeleccionado.trim() !== "") {
                     inputNombre.value = "";
+                    if (inputPuesto) inputPuesto.value = "";
+                    if (inputArea) inputArea.value = "";
+                    if (inputFechaIngreso) inputFechaIngreso.value = "";
                 }
             }
         }

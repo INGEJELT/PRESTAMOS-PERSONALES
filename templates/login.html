@@ -4,58 +4,155 @@
     <meta charset="UTF-8">
     <title>Login | El Cardenal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            background-color: #1a1d20; /* Fondo oscuro elegante */
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Segoe UI', sans-serif;
             margin: 0;
+            /* IMAGEN DE FONDO COMPLETA */
+            background: url("{{ url_for('static', filename='restaurante.jpg') }}") center center / cover no-repeat fixed;
         }
+
+        /* Capa oscura para mejorar legibilidad del formulario */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 0;
+        }
+
         .login-card {
-            background: white;
-            border-radius: 15px;
-            padding: 40px;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 50px 45px;
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 440px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            margin: 20px;
         }
-        .logo-img {
-            max-width: 220px; /* Ajuste para que luzca bien proporcionado */
-            margin-bottom: 10px;
+
+        .login-card .logo-box {
+            text-align: center;
+            margin-bottom: 30px;
         }
+
+        .login-card .logo-box img {
+            max-height: 80px;
+        }
+
+        .login-card .logo-box h6 {
+            color: #1a1d20;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        .login-card .form-floating {
+            margin-bottom: 18px;
+        }
+
+        .login-card .form-floating .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 14px 16px;
+            height: 58px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .login-card .form-floating .form-control:focus {
+            border-color: #f39c12;
+            box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.15);
+            background: white;
+        }
+
+        .login-card .form-floating label {
+            padding: 14px 16px;
+            font-weight: 500;
+            color: #6c757d;
+        }
+
         .btn-login {
-            background-color: #f39c12; /* Color naranja institucional */
+            background: linear-gradient(135deg, #f39c12, #e67e22);
             border: none;
             color: white;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
-        .btn-login:hover {
-            background-color: #d68910;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
-        }
-        .firma {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #212529;
-            text-align: center;
-            margin-top: 30px;
             letter-spacing: 0.5px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+        }
+
+        .btn-login i {
+            margin-right: 10px;
+        }
+
+        .login-card .firma {
+            text-align: center;
+            margin-top: 35px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #1a1d20;
+            letter-spacing: 0.5px;
+            opacity: 0.5;
+            border-top: 1px solid #eee;
+            padding-top: 25px;
+        }
+
+        /* Alertas */
+        .login-card .alert {
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 12px 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 576px) {
+            .login-card {
+                padding: 35px 25px;
+                margin: 15px;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="login-card text-center">
-    <img src="{{ url_for('static', filename='logo_cardenal.png') }}" alt="El Cardenal" class="logo-img">
-    <h6 class="fw-bold mb-4 text-dark text-uppercase">Control de Préstamos</h6>
+<div class="login-card">
+    <div class="logo-box">
+        <img src="{{ url_for('static', filename='logo_cardenal.png') }}" alt="El Cardenal">
+        <h6>Control de Préstamos</h6>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -65,18 +162,20 @@
       {% endif %}
     {% endwith %}
 
-    <form action="/login" method="POST" class="text-start">
-        <div class="mb-3">
-            <label class="small fw-bold text-dark text-uppercase mb-1">Usuario de Sistemas</label>
-            <input type="text" name="username" class="form-control" placeholder="Ej. SISTEMAS" required autofocus>
-        </div>
-        
-        <div class="mb-4">
-            <label class="small fw-bold text-dark text-uppercase mb-1">Contraseña</label>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+    <form action="/login" method="POST">
+        <div class="form-floating">
+            <input type="text" name="username" class="form-control" id="floatingUser" placeholder="Usuario" required autofocus>
+            <label for="floatingUser"><i class="fas fa-user me-2"></i>Usuario de Sistemas</label>
         </div>
 
-        <button type="submit" class="btn btn-login w-100 rounded-3">Entrar al Sistema</button>
+        <div class="form-floating">
+            <input type="password" name="password" class="form-control" id="floatingPass" placeholder="Contraseña" required>
+            <label for="floatingPass"><i class="fas fa-lock me-2"></i>Contraseña</label>
+        </div>
+
+        <button type="submit" class="btn-login">
+            <i class="fas fa-sign-in-alt"></i> Entrar al Sistema
+        </button>
     </form>
 
     <div class="firma">

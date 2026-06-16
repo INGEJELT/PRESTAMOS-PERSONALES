@@ -41,6 +41,11 @@
                     {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}
                 </select>
             </div>
+            {% else %}
+            <div class="col-md-3">
+                <label class="small fw-bold text-muted text-uppercase">Sucursal</label>
+                <input type="text" class="form-control form-control-lg bg-light fw-bold text-center" value="{{ suc_act }}" readonly>
+            </div>
             {% endif %}
             <div class="col-md-3 d-flex align-items-end gap-2">
                 <button type="submit" name="tipo_reporte" value="solo_deudores" class="btn btn-danger btn-lg w-100 fw-bold shadow-sm">SOLO ADEUDOS</button>
@@ -50,6 +55,7 @@
     </div>
 
     <div class="row g-4">
+        <!-- Kardex Individual -->
         <div class="col-md-4">
             <div class="card card-reporte p-4 h-100">
                 <div class="icon-box bg-primary text-white"><i class="fas fa-user"></i></div>
@@ -58,10 +64,15 @@
                 <form action="/reporte/kardex_empleado" method="POST">
                     <div class="mb-3">
                         <label class="small fw-bold">Sede</label>
+                        {% if admin %}
                         <select id="filtro_sucursal_kardex" class="form-select mb-2 shadow-sm">
                             <option value="TODAS">Ver Todas</option>
                             {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}
                         </select>
+                        {% else %}
+                        <input type="text" class="form-control bg-light fw-bold text-center" value="{{ suc_act }}" readonly>
+                        <input type="hidden" id="filtro_sucursal_kardex" value="{{ suc_act }}">
+                        {% endif %}
                         <select name="empleado_id" id="empleado_kardex" class="form-select shadow-sm" required>
                             <option value="">Buscar empleado...</option>
                             {% for emp in empleados %}
@@ -74,6 +85,7 @@
             </div>
         </div>
 
+        <!-- Kardex por Semana -->
         <div class="col-md-4">
             <div class="card card-reporte p-4 h-100">
                 <div class="icon-box bg-success text-white"><i class="fas fa-calendar-week"></i></div>
@@ -84,16 +96,21 @@
                         <label class="small fw-bold">Semana</label>
                         <input type="number" name="semana" class="form-control mb-2 shadow-sm" placeholder="Ej: 15" required>
                         <label class="small fw-bold">Sede</label>
+                        {% if admin %}
                         <select name="sucursal" class="form-select shadow-sm">
                             <option value="TODAS">Global</option>
                             {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}
                         </select>
+                        {% else %}
+                        <input type="text" name="sucursal" class="form-control bg-light fw-bold text-center" value="{{ suc_act }}" readonly>
+                        {% endif %}
                     </div>
                     <button type="submit" class="btn btn-success w-100 fw-bold">GENERAR LISTADO</button>
                 </form>
             </div>
         </div>
 
+        <!-- Historial Global -->
         <div class="col-md-4">
             <div class="card card-reporte p-4 h-100">
                 <div class="icon-box bg-dark text-white"><i class="fas fa-database"></i></div>
@@ -102,12 +119,16 @@
                 <form action="/reporte/historial_empresa" method="POST">
                     <div class="mb-3">
                         <label class="small fw-bold">Seleccionar Sucursal</label>
+                        {% if admin %}
                         <select name="sucursal" class="form-select shadow-sm mb-2">
                             <option value="TODAS">TODAS LAS SEDES</option>
                             {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}
                             <option>{{ s }}</option>
                             {% endfor %}
                         </select>
+                        {% else %}
+                        <input type="text" name="sucursal" class="form-control bg-light fw-bold text-center" value="{{ suc_act }}" readonly>
+                        {% endif %}
                         <p class="text-muted extra-small" style="font-size: 0.75rem;">Nota: Se generará con el diseño XL profesional.</p>
                     </div>
                     <button type="submit" class="btn btn-dark w-100 fw-bold">GENERAR REPORTE GLOBAL</button>
@@ -116,8 +137,38 @@
         </div>
     </div>
 
+    <!-- Reporte de Arqueos -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4 bg-white border-start border-warning border-5">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-warning mb-1"><i class="fas fa-cash-register me-2"></i> Reporte de Arqueos</h5>
+                        <p class="text-muted mb-0 small">Visualiza los cuadres de caja realizados en tu sucursal.</p>
+                    </div>
+                    {% if admin %}
+                    <form action="/reporte_arqueo" method="POST" class="d-flex gap-2">
+                        <select name="sucursal" class="form-select form-select-sm" style="width: 200px;">
+                            <option value="TODAS">TODAS LAS SEDES</option>
+                            {% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-warning fw-bold">GENERAR</button>
+                    </form>
+                    {% else %}
+                    <form action="/reporte_arqueo" method="POST">
+                        <input type="hidden" name="sucursal" value="{{ suc_act }}">
+                        <button type="submit" class="btn btn-warning fw-bold">VER MIS ARQUEOS</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% if admin %}
-    <div class="row mt-5">
+    <div class="row mt-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm p-4 bg-light border-start border-danger border-5">
                 <div class="d-flex justify-content-between align-items-center">
@@ -150,6 +201,8 @@
 
         inicializarSelect2();
 
+        // Solo para admin: permite filtrar por sucursal
+        {% if admin %}
         $('#filtro_sucursal_kardex').on('change', function() {
             var suc = $(this).val();
             $selectEmp.select2('destroy');
@@ -164,6 +217,7 @@
             }
             inicializarSelect2();
         });
+        {% endif %}
     });
 </script>
 </body>

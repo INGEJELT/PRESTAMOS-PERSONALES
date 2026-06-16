@@ -2,25 +2,27 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Kardex Individual | El Cardenal</title>
+    <title>Kardex Individual | {{ emp.empleado }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { background: #f8f9fa; padding: 30px; font-family: 'Segoe UI', sans-serif; }
         .report-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .header-line { border-bottom: 3px solid #1a1d20; margin-bottom: 25px; padding-bottom: 15px; }
+        .prestamo-block { margin-bottom: 40px; border: 1px solid #dee2e6; border-radius: 10px; overflow: hidden; }
+        .prestamo-header { background: #1a1d20; color: white; padding: 15px 20px; }
+        .prestamo-header h5 { margin: 0; font-weight: bold; }
+        .prestamo-body { padding: 20px; background: white; }
+        .resumen-card { background: #f8f9fa; border-radius: 8px; padding: 12px 20px; margin-bottom: 20px; }
         
-        /* CÓDIGO ESPECIAL PARA IMPRESIÓN PERFECTA */
         @media print { 
             @page { margin: 1.5cm; }
-            body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 12px !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 11px !important; }
             .container, .report-container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
             .no-print { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-            .table { width: 100% !important; border-collapse: collapse !important; }
-            .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .prestamo-header { background: #1a1d20 !important; color: white !important; }
+            .table th, .table td { border: 1px solid #000 !important; padding: 6px !important; }
         }
     </style>
 </head>
@@ -30,7 +32,7 @@
             <a href="/reportes" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Volver</a>
             <div>
                 <button onclick="window.print()" class="btn btn-dark btn-sm me-2"><i class="fas fa-print"></i> Imprimir</button>
-                <button type="button" onclick="exportarAExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+                <button type="button" onclick="exportarExcelEstructurado()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Descargar Excel</button>
             </div>
         </div>
 
@@ -42,54 +44,103 @@
                     <p class="mb-1"><strong>Empleado:</strong> <span class="fw-bold">{{ emp.empleado }}</span></p>
                     <p class="mb-1"><strong>Nómina:</strong> <span class="badge bg-secondary">{{ emp.nomina }}</span></p>
                     <p class="mb-1"><strong>Sucursal:</strong> {{ emp.sucursal }}</p>
-                    <p class="mb-1"><strong>Fecha de Préstamo:</strong> {{ emp.fecha_otorgamiento }}</p>
+                    <p class="mb-1"><strong>DEPARTAMENTO:</strong> {{ emp.area or 'N/A' }}</p>
+                    <p class="mb-1"><strong>PUESTO:</strong> {{ emp.puesto or 'N/A' }}</p>
                 </div>
                 <div class="col-md-6 text-end border-start">
-                    <h5 class="text-muted mb-1">Préstamo Inicial: <span class="text-dark fw-bold">${{ "{:,.2f}".format(emp.monto_inicial) }}</span></h5>
-                    <h4 class="mb-0">Saldo Pendiente: <span class="text-danger fw-bold">${{ "{:,.2f}".format(emp.saldo_pendiente) }}</span></h4>
+                    <p class="mb-1"><strong>Fecha Ingreso:</strong> {{ emp.fecha_ingreso or 'N/A' }}</p>
+                    <p class="mb-1"><strong>ID Empleado:</strong> {{ emp.id_empleado or 'N/A' }}</p>
                 </div>
             </div>
         </div>
 
-        <h5 class="fw-bold mb-3 text-primary text-uppercase"><i class="fas fa-list-ol me-2"></i> Historial de Movimientos</h5>
-        <table class="table table-bordered table-striped text-center align-middle" id="tablaKardex">
-            <thead class="table-dark text-uppercase small">
-                <tr>
-                    <th>Semana</th>
-                    <th>Fecha de Pago</th>
-                    <th>Tipo de Movimiento</th>
-                    <th class="text-end">Monto</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set total_abonos = namespace(valor=0) %}
-                {% for m in movimientos %}
-                    {% if m.tipo == 'ABONO' %}
-                        {% set total_abonos.valor = total_abonos.valor + m.monto %}
-                    {% endif %}
-                <tr>
-                    <td class="fw-bold">{{ m.semana }}</td>
-                    <td>{{ m.fecha }}</td>
-                    <td>
-                        {% if m.tipo == 'CARGO' %}
-                            <span class="text-primary fw-bold">CARGO INICIAL</span>
+        <!-- Recorrer cada préstamo del empleado -->
+        {% for item in prestamos %}
+        {% set p = item.prestamo %}
+        {% set movimientos = item.movimientos %}
+        {% set total_abonado = item.total_abonado %}
+        
+        <div class="prestamo-block">
+            <div class="prestamo-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-hand-holding-usd me-2"></i> Préstamo #{{ p.id }} - Fecha: {{ p.fecha_otorgamiento }}</h5>
+                    <span class="badge bg-warning text-dark fs-6">Semana Origen: {{ p.semana_otorgada }}</span>
+                </div>
+            </div>
+            <div class="prestamo-body">
+                <div class="row resumen-card mb-3">
+                    <div class="col-md-4">
+                        <small class="text-muted text-uppercase">Monto Inicial</small>
+                        <h4 class="fw-bold text-dark">${{ "{:,.2f}".format(p.monto_inicial) }}</h4>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted text-uppercase">Total Abonado</small>
+                        <h4 class="fw-bold text-success">${{ "{:,.2f}".format(total_abonado) }}</h4>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted text-uppercase">Saldo Pendiente</small>
+                        <h4 class="fw-bold text-danger">${{ "{:,.2f}".format(p.saldo_pendiente) }}</h4>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3"><i class="fas fa-list me-2"></i> Movimientos del Préstamo</h6>
+                <table class="table table-bordered table-striped text-center align-middle" id="tabla_{{ p.id }}">
+                    <thead class="table-dark text-uppercase small">
+                        <tr>
+                            <th>Semana</th>
+                            <th>Fecha de Pago</th>
+                            <th>Tipo</th>
+                            <th class="text-end">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="table-light">
+                            <td class="fw-bold">{{ p.semana_otorgada }}</td>
+                            <td>{{ p.fecha_otorgamiento }}</td>
+                            <td><span class="text-primary fw-bold">CARGO INICIAL</span></td>
+                            <td class="text-end text-primary fw-bold">${{ "{:,.2f}".format(p.monto_inicial) }}</td>
+                        </tr>
+                        {% for m in movimientos %}
+                        <tr>
+                            <td class="fw-bold">{{ m.semana }}</td>
+                            <td>{{ m.fecha }}</td>
+                            <td><span class="text-success fw-bold">ABONO</span></td>
+                            <td class="text-end text-success fw-bold">-${{ "{:,.2f}".format(m.monto) }}</td>
+                        </tr>
                         {% else %}
-                            <span class="text-success fw-bold">ABONO</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end fw-bold {{ 'text-primary' if m.tipo == 'CARGO' else 'text-success' }}">
-                        {{ '-' if m.tipo == 'ABONO' }}${{ "{:,.2f}".format(m.monto) }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot class="table-light border-top border-dark">
-                <tr>
-                    <td colspan="3" class="text-end fw-bold text-uppercase fs-6">TOTAL ABONADO HASTA HOY:</td>
-                    <td class="text-end fw-bold fs-6 text-success">${{ "{:,.2f}".format(total_abonos.valor) }}</td>
-                </tr>
-            </tfoot>
-        </table>
+                        <tr>
+                            <td colspan="4" class="text-muted">No hay abonos registrados</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">TOTAL ABONADO:</td>
+                            <td class="text-end fw-bold text-success">${{ "{:,.2f}".format(total_abonado) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Resumen Global -->
+        <div class="alert alert-info mt-4">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h6 class="text-muted">Total Préstamos</h6>
+                    <h4 class="fw-bold">{{ prestamos|length }}</h4>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-muted">Total Prestado</h6>
+                    <h4 class="fw-bold">${{ "{:,.2f}".format(prestamos|sum(attribute='prestamo.monto_inicial')) }}</h4>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-muted">Deuda Actual Total</h6>
+                    <h4 class="fw-bold text-danger">${{ "{:,.2f}".format(prestamos|sum(attribute='prestamo.saldo_pendiente')) }}</h4>
+                </div>
+            </div>
+        </div>
     </div>
 
 <script>
@@ -97,32 +148,93 @@ const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeri
 const fechaActual = new Date().toLocaleDateString('es-MX', opciones);
 document.getElementById('fechaEmision').innerHTML = '<i class="fas fa-clock me-1"></i> Generado el: ' + fechaActual;
 
-function exportarAExcel() {
-    let tabla = document.getElementById("tablaKardex").outerHTML;
+function exportarExcelEstructurado() {
+    // Construir HTML estructurado para Excel
+    let contenido = '';
     
-    // TAMAÑO 8pt Y PADDING PARA HACER COLUMNAS ANCHAS
+    // Cabecera del reporte
+    contenido += `
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+            <tr><td colspan="4" style="background-color: #1a1d20; color: white; font-size: 18px; font-weight: bold;">KARDEX INDIVIDUAL</td></tr>
+            <tr><td colspan="4"><strong>Generado el:</strong> ${fechaActual}</td></tr>
+            <tr><td width="25%"><strong>Empleado:</strong></td><td width="25%">{{ emp.empleado }}</td><td width="25%"><strong>Nómina:</strong></td><td width="25%">{{ emp.nomina }}</td></tr>
+            <tr><td><strong>Sucursal:</strong></td><td>{{ emp.sucursal }}</td><td><strong>ID Empleado:</strong></td><td>{{ emp.id_empleado or 'N/A' }}</td></tr>
+            <tr><td><strong>DEPARTAMENTO:</strong></td><td>{{ emp.area or 'N/A' }}</td><td><strong>PUESTO:</strong></td><td>{{ emp.puesto or 'N/A' }}</td></tr>
+            <tr><td><strong>Fecha Ingreso:</strong></td><td colspan="3">{{ emp.fecha_ingreso or 'N/A' }}</td></tr>
+        </table>
+    `;
+    
+    // Recorrer cada préstamo
+    {% for item in prestamos %}
+    {% set p = item.prestamo %}
+    {% set total_abonado = item.total_abonado %}
+    
+    contenido += `
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 20px; margin-top: 30px;">
+            <tr style="background-color: #1a1d20; color: white;">
+                <td colspan="4"><strong>PRÉSTAMO #${ {{ p.id }} } - Fecha: ${ {{ p.fecha_otorgamiento|tojson }} }</strong> &nbsp;&nbsp; Semana Origen: ${ {{ p.semana_otorgada }} }</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td width="33%"><strong>Monto Inicial:</strong> $${ {{ "{:,.2f}".format(p.monto_inicial)|tojson }} }</td>
+                <td width="33%"><strong>Total Abonado:</strong> $${ {{ "{:,.2f}".format(total_abonado)|tojson }} }</td>
+                <td width="34%"><strong>Saldo Pendiente:</strong> $${ {{ "{:,.2f}".format(p.saldo_pendiente)|tojson }} }</td>
+            </tr>
+            <tr style="background-color: #e9ecef;">
+                <th>Semana</th>
+                <th>Fecha de Pago</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+            </tr>
+            <tr>
+                <td style="text-align: center;">${ {{ p.semana_otorgada }} }</td>
+                <td style="text-align: center;">${ {{ p.fecha_otorgamiento|tojson }} }</td>
+                <td style="text-align: center; color: #007bff; font-weight: bold;">CARGO INICIAL</td>
+                <td style="text-align: right; color: #007bff; font-weight: bold;">$${ {{ "{:,.2f}".format(p.monto_inicial)|tojson }} }</td>
+            </tr>
+            {% for m in item.movimientos %}
+            <tr>
+                <td style="text-align: center;">${ {{ m.semana }} }</td>
+                <td style="text-align: center;">${ {{ m.fecha|tojson }} }</td>
+                <td style="text-align: center; color: #28a745; font-weight: bold;">ABONO</td>
+                <td style="text-align: right; color: #28a745; font-weight: bold;">-$${ {{ "{:,.2f}".format(m.monto)|tojson }} }</td>
+            </tr>
+            {% endfor %}
+            <tr style="background-color: #f8f9fa; font-weight: bold;">
+                <td colspan="3" style="text-align: right;">TOTAL ABONADO:</td>
+                <td style="text-align: right; color: #28a745;">$${ {{ "{:,.2f}".format(total_abonado)|tojson }} }</td>
+            </tr>
+        </table>
+    `;
+    {% endfor %}
+    
+    // Resumen Global
+    contenido += `
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 30px; background-color: #d1ecf1;">
+            <tr>
+                <td width="33%" style="text-align: center;"><strong>Total Préstamos</strong><br><span style="font-size: 18px;">${ {{ prestamos|length }} }</span></td>
+                <td width="33%" style="text-align: center;"><strong>Total Prestado</strong><br><span style="font-size: 18px;">$${ {{ "{:,.2f}".format(prestamos|sum(attribute='prestamo.monto_inicial'))|tojson }} }</span></td>
+                <td width="34%" style="text-align: center; color: #dc3545;"><strong>Deuda Actual Total</strong><br><span style="font-size: 18px;">$${ {{ "{:,.2f}".format(prestamos|sum(attribute='prestamo.saldo_pendiente'))|tojson }} }</span></td>
+            </tr>
+        </table>
+    `;
+    
     let estilos = `
         <style>
-            body, table { font-family: 'Calibri', sans-serif; }
-            table { border-collapse: collapse; width: 100%; white-space: nowrap; }
-            th { background-color: #1a1d20; color: #ffffff; font-weight: bold; border: 1pt solid #333; padding: 10px 40px; font-size: 8pt; text-align: center; }
-            td { border: 1pt solid #ccc; padding: 8px 40px; text-align: center; font-size: 8pt; font-weight: bold; }
-            tfoot td { background-color: #f8f9fa; color: #198754; font-weight: bold; font-size: 9pt; border-top: 2pt solid #000; text-align: right; }
-            .header-info { background-color: #f0f0f0; border: 1pt solid #333; padding: 15px; margin-bottom: 20px; }
-            .titulo-excel { font-size: 14pt; margin: 0; text-decoration: underline; font-weight: bold; }
-            .texto-excel { font-size: 8pt; margin: 5px 0; }
+            body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; margin: 20px; }
+            table { border-collapse: collapse; }
+            th, td { border: 1px solid #999; padding: 8px; }
         </style>
     `;
+    
     let htmlCompleto = `
         <html xmlns:x="urn:schemas-microsoft-com:office:excel">
-        <head><meta charset="utf-8">${estilos}</head>
+        <head>
+            <meta charset="utf-8">
+            <title>Kardex Individual - {{ emp.empleado }}</title>
+            ${estilos}
+        </head>
         <body>
-            <div class="header-info">
-                <p class="titulo-excel">EL CARDENAL - KARDEX INDIVIDUAL</p>
-                <p class="texto-excel"><b>EMPLEADO:</b> {{ emp.empleado }} | <b>NÓMINA:</b> {{ emp.nomina }} | <b>SUCURSAL:</b> {{ emp.sucursal }}</p>
-                <p class="texto-excel" style="color: #c0392b;"><b>SALDO PENDIENTE ACTUAL: ${{ "{:,.2f}".format(emp.saldo_pendiente) }}</b></p>
-            </div>
-            ${tabla}
+            ${contenido}
         </body>
         </html>
     `;
@@ -131,10 +243,10 @@ function exportarAExcel() {
     let url = URL.createObjectURL(blob);
     let a = document.createElement("a");
     a.href = url;
-    a.download = "Kardex_{{ emp.nomina }}.xls";
+    a.download = "Kardex_{{ emp.nomina }}_{{ emp.empleado.split(' ')[0] }}.xls";
     document.body.appendChild(a); 
-    a.click();
-    document.body.removeChild(a); 
+    a.click(); 
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
 </script>
