@@ -5,8 +5,16 @@ from flask import Flask, render_template, request, redirect, session, flash, jso
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import re
+import uuid
+import json
 
 app = Flask(__name__)
+app.secret_key = "cardenal_master_key_2026"
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+DB_NAME = "cardenal_napoles.db"
+
+# --- NUEVO: Diccionario para controlar sesiones activas ---
+sesiones_activas = {}
 app.secret_key = "cardenal_master_key_2026"
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 DB_NAME = "cardenal_napoles.db"
@@ -42,10 +50,16 @@ def init_db():
         FOREIGN KEY(prestamo_id) REFERENCES prestamos(id))''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS arqueos (
         id INTEGER PRIMARY KEY AUTOINCREMENT, sucursal TEXT, fecha TEXT, semana INTEGER, 
-        fondo_sistema REAL, efectivo_real REAL, diferencia REAL, observaciones TEXT, usuario TEXT)''')
+        fondo_sistema REAL, efectivo_real REAL, diferencia REAL, observaciones TEXT, usuario TEXT, detalle TEXT)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS auditoria (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fecha_hora TEXT, usuario TEXT, accion TEXT,
         empleado_nombre TEXT, detalle TEXT, motivo TEXT, sucursal TEXT)''')
+    
+    # Agregar columna detalle a arqueos si no existe
+    try:
+        cursor.execute('ALTER TABLE arqueos ADD COLUMN detalle TEXT')
+    except:
+        pass
     
     sucursales = ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI']
     for s in sucursales:
@@ -61,13 +75,40 @@ def init_db():
 
 def es_admin():
     return session.get('rol') == 'ADMIN'
-
 # ------------------------------------------------------------
-# BLOQUEO OBLIGATORIO DE ARQUEO LOS LUNES
+# CONTROL DE SESIONES ACTIVAS Y EXPULSIÓN
 # ------------------------------------------------------------
 @app.before_request
-def forzar_arqueo_lunes():
-    # Rutas que no se bloquean para evitar un bucle infinito
+def verificar_sesion_activa():
+    if request.path.startswith('/static/') or request.path == '/login':
+        return None
+        
+    if 'user' in session:
+        user = session['user']
+        token_actual = session.get('session_token')
+        
+        # Si el usuario no está en el diccionario de sesiones activas (porque fue expulsado)
+        if user not in sesiones_activas:
+            session.clear()
+            flash("Tu sesión ha sido cerrada remotamente por el administrador.", "danger")
+            return redirect('/login')
+        
+        # Si está, validamos token
+        token_valido = sesiones_activas[user].get('token')
+        if token_valido != token_actual and user != 'SISTEMAS':
+            session.clear()
+            flash("Tu sesión ha sido cerrada remotamente por el administrador.", "danger")
+            return redirect('/login')
+        else:
+            # Actualizar última actividad
+            sesiones_activas[user]['ultima_actividad'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Si no hay usuario en sesión, no hacemos nada
+
+# ------------------------------------------------------------
+# BLOQUEO OBLIGATORIO DE ARQUEO SEMANAL
+# ------------------------------------------------------------
+@app.before_request
+def forzar_arqueo_semanal():
     rutas_permitidas = ['/login', '/logout', '/guardar_arqueo']
     if request.path in rutas_permitidas or request.path.startswith('/static/'):
         return None
@@ -77,21 +118,18 @@ def forzar_arqueo_lunes():
     
     sucursal = session.get('sucursal')
     if not sucursal or sucursal == 'TODAS': 
-        return None # Excluir al admin global de esta regla
+        return None
     
     hoy = datetime.now()
-    if hoy.weekday() == 0: # 0 significa Lunes
-        semana_actual = hoy.isocalendar()[1]
-        conn = sqlite3.connect(DB_NAME, timeout=10.0)
-        # Buscar si ya hicieron el arqueo de esta semana
-        arqueo_hecho = conn.execute('SELECT id FROM arqueos WHERE sucursal = ? AND semana = ? AND strftime("%Y", fecha) = ?', 
-                                    (sucursal, semana_actual, str(hoy.year))).fetchone()
-        conn.close()
-        
-        # Si no lo han hecho y no están ya en la página de resumen, redirigirlos a la fuerza
-        if not arqueo_hecho and not request.path.startswith(f'/resumen_empresa/{sucursal}'):
-            flash("¡DÍA DE ARQUEO! Es obligatorio realizar el cuadre de caja antes de continuar operando.", "warning")
-            return redirect(f'/resumen_empresa/{sucursal}')
+    semana_actual = hoy.isocalendar()[1]
+    conn = sqlite3.connect(DB_NAME, timeout=10.0)
+    arqueo_hecho = conn.execute('SELECT id FROM arqueos WHERE sucursal = ? AND semana = ? AND strftime("%Y", fecha) = ?', 
+                                (sucursal, semana_actual, str(hoy.year))).fetchone()
+    conn.close()
+    
+    if not arqueo_hecho and not request.path.startswith(f'/resumen_empresa/{sucursal}'):
+        flash("¡ARQUEO SEMANAL PENDIENTE! Es obligatorio realizar el cuadre de caja de esta semana antes de continuar operando.", "warning")
+        return redirect(f'/resumen_empresa/{sucursal}')
 
 # ------------------------------------------------------------
 # PREFIJOS PERSONALIZADOS PARA ID
@@ -140,7 +178,7 @@ def configurar_fondo():
     if not es_admin():
         return redirect('/')
     sucursal = request.form.get('sucursal_caja')
-    monto = float(request.form.get('monto_inicial'))
+    monto = int(float(request.form.get('monto_inicial')))
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.execute('UPDATE cajas SET saldo_inicial = ?, saldo_actual = ? WHERE sucursal = ?', (monto, monto, sucursal))
     conn.commit()
@@ -149,7 +187,7 @@ def configurar_fondo():
     return redirect('/')
 
 # ------------------------------------------------------------
-# Sincronizar datos de empleados desde archivos Excel (PUESTO, DEPARTAMENTO, FECHA_INGRESO)
+# Sincronizar datos de empleados desde archivos Excel
 # ------------------------------------------------------------
 @app.route('/sincronizar_empleados', methods=['POST'])
 def sincronizar_empleados():
@@ -160,13 +198,11 @@ def sincronizar_empleados():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     cursor = conn.cursor()
     
-    # Asegurar que existe la columna puesto
     try:
         cursor.execute('ALTER TABLE prestamos ADD COLUMN puesto TEXT')
     except:
         pass
     
-    # Obtener todos los préstamos (o los de una sucursal)
     if sucursal == 'TODAS':
         prestamos = cursor.execute('SELECT id, nomina, sucursal FROM prestamos').fetchall()
     else:
@@ -185,13 +221,11 @@ def sincronizar_empleados():
     for prestamo in prestamos:
         p_id, nomina_db, suc = prestamo
         
-        # Normalizar nómina de la base de datos
         try:
             nomina_normalizada = str(int(float(nomina_db)))
         except:
             nomina_normalizada = str(nomina_db).strip()
         
-        # Buscar archivo Excel de la sucursal
         archivo_encontrado = None
         for nombre in os.listdir(folder_path):
             if nombre.upper().startswith(f"DEPARTAMENTO {suc.upper()}") or nombre.upper().startswith(f"DEPARTAMENTO_{suc.upper()}"):
@@ -209,13 +243,9 @@ def sincronizar_empleados():
             continue
         
         try:
-            # Determinar la columna de fecha según la cantidad de columnas
             df_headers = pd.read_excel(archivo_encontrado, nrows=1, header=None)
             num_cols = len(df_headers.columns)
-            # Para archivos con muchas columnas (TACUBA, BOMBILLA, etc.), la fecha está en columna 5 (F.ALTA)
-            # Para archivos con pocas columnas (BRIGAR), la fecha está en columna 3 (F.ALTA)
             fecha_col_idx = 5 if num_cols >= 6 else 3
-            # La columna del puesto (PUESTO) varía: en archivos con muchas columnas está en columna 4, en pocas en columna 2
             puesto_col_idx = 4 if num_cols >= 6 else 2
             
             df = pd.read_excel(archivo_encontrado, header=None, dtype=str)
@@ -238,19 +268,16 @@ def sincronizar_empleados():
                 if not clave_excel_raw or clave_excel_raw == "nan" or clave_excel_raw == "Clave":
                     continue
                 
-                # Normalizar clave del Excel
                 try:
                     clave_normalizada = str(int(float(clave_excel_raw)))
                 except:
                     clave_normalizada = clave_excel_raw
                 
                 if clave_normalizada == nomina_normalizada:
-                    # Obtener puesto (columna según estructura)
                     puesto = ""
                     if len(row) > puesto_col_idx and pd.notna(row[puesto_col_idx]):
                         puesto = str(row[puesto_col_idx]).strip()
                     
-                    # Obtener fecha de ingreso
                     fecha_alta_raw = None
                     if len(row) > fecha_col_idx and pd.notna(row[fecha_col_idx]):
                         fecha_alta_raw = row[fecha_col_idx]
@@ -264,7 +291,6 @@ def sincronizar_empleados():
                         except:
                             fecha_alta = fecha_str
                     
-                    # Actualizar el préstamo con departamento, puesto y fecha_ingreso
                     cursor.execute('UPDATE prestamos SET area = ?, puesto = ?, fecha_ingreso = ? WHERE id = ?',
                                    (departamento_actual, puesto, fecha_alta, p_id))
                     actualizados += 1
@@ -358,7 +384,6 @@ def index(num_sem, suc):
         
     empleados = conn.execute(query, params).fetchall()
     
-    # --- OBTENER ÚLTIMO ARQUEO POR SUCURSAL (diccionario) ---
     ultimos_arqueos_dict = {}
     if es_admin():
         sucursales_unicas = conn.execute('SELECT DISTINCT sucursal FROM arqueos').fetchall()
@@ -404,7 +429,7 @@ def editar_prestamo_maestro():
     nueva_nomina = request.form.get('nomina')
     nuevo_nombre = request.form.get('empleado')
     nueva_area = request.form.get('area')
-    nuevo_monto = float(request.form.get('monto_inicial'))
+    nuevo_monto = int(float(request.form.get('monto_inicial')))
     nuevo_autoriza = request.form.get('autoriza')
     nueva_fecha_ingreso = request.form.get('fecha_ingreso')
     nueva_fecha_otorgamiento = request.form.get('fecha_otorgamiento')
@@ -449,7 +474,7 @@ def editar_prestamo_maestro():
     return redirect(request.referrer or '/')
 
 # ------------------------------------------------------------
-# 4. ABONOS Y AUDITORÍA (con redondeo)
+# 4. ABONOS Y AUDITORÍA
 # ------------------------------------------------------------
 @app.route('/registrar_abono', methods=['POST'])
 def registrar_abono():
@@ -477,7 +502,7 @@ def registrar_abono():
     for emp_id in ids_empleados:
         monto_str = request.form.get(f'monto_abono_{emp_id}')
         if monto_str and float(monto_str) > 0:
-            monto = float(monto_str)
+            monto = int(float(monto_str))
             cursor.execute('INSERT INTO movimientos (prestamo_id, fecha, semana, tipo, monto) VALUES (?,?,?,?,?)',
                           (emp_id, fecha_hoy, semana, 'ABONO', monto))
             cursor.execute('UPDATE prestamos SET saldo_pendiente = round(saldo_pendiente - ?, 2) WHERE id = ?', (monto, emp_id))
@@ -527,7 +552,7 @@ def actualizar_movimiento():
         return redirect('/')
     mov_id = request.form['mov_id']
     prestamo_id = request.form['prestamo_id']
-    nuevo_monto = float(request.form['nuevo_monto'])
+    nuevo_monto = int(float(request.form['nuevo_monto']))
     nueva_semana = request.form['nueva_semana']
     motivo = request.form['motivo'] 
 
@@ -637,7 +662,6 @@ def reportes():
     conn.row_factory = sqlite3.Row
     
     if es_admin():
-        # Admin ve TODOS los empleados de todas las sucursales
         empleados = conn.execute('''
             SELECT MIN(id) as id, nomina, empleado, sucursal, 
                    MIN(id_empleado) as id_empleado
@@ -646,7 +670,6 @@ def reportes():
             ORDER BY sucursal ASC, empleado ASC
         ''').fetchall()
     else:
-        # Usuario de sucursal SOLO ve los empleados de su sucursal
         empleados = conn.execute('''
             SELECT MIN(id) as id, nomina, empleado, sucursal,
                    MIN(id_empleado) as id_empleado
@@ -667,7 +690,6 @@ def r_historial_empresa():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.row_factory = sqlite3.Row
     
-    # Mostrar SOLO préstamos ACTIVOS (con saldo pendiente > 0)
     query = '''
         SELECT p.*, 
         (SELECT IFNULL(SUM(monto), 0) FROM movimientos WHERE prestamo_id = p.id AND tipo = 'ABONO') as total_abonado
@@ -677,7 +699,6 @@ def r_historial_empresa():
     
     if suc == 'TODAS' and es_admin():
         prestamos = conn.execute(query + ' ORDER BY sucursal ASC, empleado ASC').fetchall()
-        # Totales calculados sobre los préstamos activos
         tot_inicial = conn.execute('SELECT SUM(monto_inicial) FROM prestamos WHERE saldo_pendiente > 0').fetchone()[0] or 0
         tot_pendiente = conn.execute('SELECT SUM(saldo_pendiente) FROM prestamos WHERE saldo_pendiente > 0').fetchone()[0] or 0
     else:
@@ -702,7 +723,6 @@ def r_kardex_emp():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.row_factory = sqlite3.Row
     
-    # Obtener la nómina del empleado seleccionado
     nomina_empleado = conn.execute('SELECT nomina FROM prestamos WHERE id = ?', (emp_id,)).fetchone()
     if not nomina_empleado:
         conn.close()
@@ -711,7 +731,6 @@ def r_kardex_emp():
     
     nomina = nomina_empleado['nomina']
     
-    # Obtener TODOS los préstamos del empleado (ordenados por fecha)
     todos_prestamos = conn.execute('''
         SELECT * FROM prestamos 
         WHERE nomina = ? 
@@ -723,20 +742,16 @@ def r_kardex_emp():
         flash("No se encontraron préstamos para este empleado", "danger")
         return redirect('/reportes')
     
-    # Tomar el primer préstamo para datos base del empleado
     emp = todos_prestamos[0]
     
-    # Para cada préstamo, obtener sus movimientos
     prestamos_con_movimientos = []
     for prestamo in todos_prestamos:
-        # Obtener movimientos de este préstamo
         movimientos = conn.execute('''
             SELECT * FROM movimientos 
             WHERE prestamo_id = ? 
             ORDER BY semana DESC
         ''', (prestamo['id'],)).fetchall()
         
-        # Calcular total abonado de este préstamo
         total_abonado = sum(m['monto'] for m in movimientos if m['tipo'] == 'ABONO')
         
         prestamos_con_movimientos.append({
@@ -806,11 +821,9 @@ def reporte_arqueo():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.row_factory = sqlite3.Row
     
-    # Construir consulta con filtro de sucursal
     if sucursal == 'TODAS' and es_admin():
         registros = conn.execute('SELECT * FROM arqueos ORDER BY fecha DESC').fetchall()
     else:
-        # Si el usuario no es admin, solo puede ver su propia sucursal
         if not es_admin():
             sucursal = session.get('sucursal')
         registros = conn.execute('SELECT * FROM arqueos WHERE sucursal = ? ORDER BY fecha DESC', (sucursal,)).fetchall()
@@ -942,7 +955,6 @@ def importar_excel():
                         semana_otorgada = datetime.now().isocalendar()[1]
                 
                 id_empleado = generar_id_empleado(suc_dest, nomina, conn)
-                # Buscar fecha_ingreso en el mismo row si existe
                 fecha_ingreso = None
                 if 'F.ALTA' in row:
                     fecha_ingreso = row['F.ALTA']
@@ -973,9 +985,9 @@ def nuevo_prestamo():
         return redirect('/login')
     n = request.form['nomina']
     nom = request.form['nombre']
-    p = request.form.get('puesto', '')  # NUEVO: capturar puesto
+    p = request.form.get('puesto', '')
     a = request.form['area']
-    m = float(request.form['monto'])
+    m = int(float(request.form['monto']))
     f = request.form['fecha_otorgamiento']
     s = request.form['sucursal'] if es_admin() else session['sucursal']
     fecha_ingreso = request.form.get('fecha_ingreso', '')
@@ -1006,7 +1018,7 @@ def nuevo_prestamo():
     return redirect('/')
 
 # ------------------------------------------------------------
-# 9. API PARA AUTOCOMPLETADO (DESDE EXCEL DE DEPARTAMENTOS) - CON PUESTO
+# 9. API PARA AUTOCOMPLETADO (DESDE EXCEL DE DEPARTAMENTOS)
 # ------------------------------------------------------------
 @app.route('/api/empleados_excel/<sucursal>')
 def api_empleados_excel(sucursal):
@@ -1019,7 +1031,6 @@ def api_empleados_excel(sucursal):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     folder_path = os.path.join(base_dir, 'empleados')
     
-    # Buscar archivo de forma flexible
     archivo_encontrado = None
     for nombre in os.listdir(folder_path):
         if nombre.upper().startswith(f"DEPARTAMENTO {sucursal.upper()}") or nombre.upper().startswith(f"DEPARTAMENTO_{sucursal.upper()}"):
@@ -1037,10 +1048,8 @@ def api_empleados_excel(sucursal):
     filepath = os.path.join(folder_path, archivo_encontrado)
     
     try:
-        # Leer con encabezados para identificar columnas
         df_headers = pd.read_excel(filepath, nrows=1, header=None)
         num_cols = len(df_headers.columns)
-        # Determinar índices según la estructura del archivo
         fecha_col_idx = 5 if num_cols >= 6 else 3
         puesto_col_idx = 4 if num_cols >= 6 else 2
         
@@ -1067,12 +1076,10 @@ def api_empleados_excel(sucursal):
             if clave == "" or nombre == "" or clave == "nan" or nombre == "nan" or clave == "Clave":
                 continue
             
-            # Obtener puesto
             puesto = ""
             if len(row) > puesto_col_idx and pd.notna(row[puesto_col_idx]):
                 puesto = str(row[puesto_col_idx]).strip()
             
-            # Obtener fecha de ingreso
             fecha_alta_raw = None
             if len(row) > fecha_col_idx and pd.notna(row[fecha_col_idx]):
                 fecha_alta_raw = row[fecha_col_idx]
@@ -1100,7 +1107,7 @@ def api_empleados_excel(sucursal):
         return jsonify([])
     
 # ------------------------------------------------------------
-# 10. GRÁFICAS POR SEDE (solo activos)
+# 10. GRÁFICAS POR SEDE
 # ------------------------------------------------------------
 @app.route('/graficas')
 def graficas():
@@ -1148,7 +1155,6 @@ def resumen_empresa_default():
 
 @app.route('/resumen_empresa/<sucursal>')
 def resumen_empresa(sucursal):
-    # Seguridad: Un usuario normal solo puede ver su propia sucursal
     if not es_admin() and session.get('sucursal') != sucursal:
         return redirect(f'/resumen_empresa/{session.get("sucursal")}')
     
@@ -1160,24 +1166,37 @@ def resumen_empresa(sucursal):
     conn.row_factory = sqlite3.Row
     
     caja = conn.execute('SELECT saldo_inicial, saldo_actual FROM cajas WHERE sucursal = ?', (sucursal,)).fetchone()
-    fondo_inicial = caja['saldo_inicial'] if caja else 0
-    fondo_actual = caja['saldo_actual'] if caja else 0
+    fondo_inicial = int(caja['saldo_inicial']) if caja else 0
+    fondo_actual = int(caja['saldo_actual']) if caja else 0
     
-    # Obtener último arqueo de la sucursal
     ultimo_arqueo = conn.execute('SELECT * FROM arqueos WHERE sucursal = ? ORDER BY fecha DESC LIMIT 1', (sucursal,)).fetchone()
     
-    # Lógica de Arqueo Obligatorio
     hoy = datetime.now()
     semana_actual = hoy.isocalendar()[1]
     arqueo_pendiente = False
     
-    if hoy.weekday() == 0 and not (es_admin() and sucursal != session.get('sucursal')):
+    if not (es_admin() and sucursal != session.get('sucursal')):
         arqueo_hecho = conn.execute('SELECT id FROM arqueos WHERE sucursal = ? AND semana = ? AND strftime("%Y", fecha) = ?', 
                                     (sucursal, semana_actual, str(hoy.year))).fetchone()
         if not arqueo_hecho:
             arqueo_pendiente = True
             
     historial_arqueos = conn.execute('SELECT * FROM arqueos WHERE sucursal = ? ORDER BY id DESC', (sucursal,)).fetchall()
+    
+    # Parsear detalle y agregar detalle_json
+    historial_arqueos_parsed = []
+    for a in historial_arqueos:
+        a_dict = dict(a)
+        try:
+            if a_dict.get('detalle'):
+                a_dict['detalle'] = json.loads(a_dict['detalle'])
+            else:
+                a_dict['detalle'] = {}
+        except:
+            a_dict['detalle'] = {}
+        # Generar JSON string para la vista (con ensure_ascii=False para caracteres especiales)
+        a_dict['detalle_json'] = json.dumps(a_dict['detalle'], ensure_ascii=False)
+        historial_arqueos_parsed.append(a_dict)
     
     prestamos_activos = conn.execute('''
         SELECT id, id_empleado, nomina, empleado, area, monto_inicial, saldo_pendiente, fecha_ingreso,
@@ -1209,8 +1228,25 @@ def resumen_empresa(sucursal):
                           total_adeudo=total_adeudo, prestamos=prestamos_activos,
                           anio_act=anio_act, admin=es_admin(), cajas=cajas,
                           usuarios=usuarios_lista, datetime=datetime,
-                          arqueo_pendiente=arqueo_pendiente, historial_arqueos=historial_arqueos,
+                          arqueo_pendiente=arqueo_pendiente, historial_arqueos=historial_arqueos_parsed,
                           ultimo_arqueo=ultimo_arqueo)
+
+# ================= FUNCIONES AUXILIARES PARA CONVERSIÓN SEGURA =================
+def safe_int(val):
+    try:
+        if val is None or str(val).strip() == '':
+            return 0
+        return int(float(val))
+    except:
+        return 0
+
+def safe_float(val):
+    try:
+        if val is None or str(val).strip() == '':
+            return 0.0
+        return float(val)
+    except:
+        return 0.0
 
 @app.route('/guardar_arqueo', methods=['POST'])
 def guardar_arqueo():
@@ -1218,9 +1254,21 @@ def guardar_arqueo():
         return redirect('/login')
     
     sucursal = request.form.get('sucursal')
-    fondo_sistema = float(request.form.get('fondo_sistema'))
-    efectivo_real = float(request.form.get('efectivo_real'))
+    fondo_sistema = safe_float(request.form.get('fondo_sistema'))
+    efectivo_real = safe_float(request.form.get('efectivo_real'))
     observaciones = request.form.get('observaciones', '')
+    
+    # Capturar detalle de billetes y monedas con conversión segura
+    detalle = {
+        '1000': safe_int(request.form.get('billete_1000')),
+        '500': safe_int(request.form.get('billete_500')),
+        '200': safe_int(request.form.get('billete_200')),
+        '100': safe_int(request.form.get('billete_100')),
+        '50': safe_int(request.form.get('billete_50')),
+        '20': safe_int(request.form.get('billete_20')),
+        'monedas': safe_float(request.form.get('monedas'))
+    }
+    detalle_json = json.dumps(detalle)
     
     diferencia = efectivo_real - fondo_sistema
     hoy = datetime.now()
@@ -1228,13 +1276,77 @@ def guardar_arqueo():
     fecha_str = hoy.strftime('%Y-%m-%d %H:%M:%S')
     
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
-    conn.execute('INSERT INTO arqueos (sucursal, fecha, semana, fondo_sistema, efectivo_real, diferencia, observaciones, usuario) VALUES (?,?,?,?,?,?,?,?)',
-                 (sucursal, fecha_str, semana, fondo_sistema, efectivo_real, diferencia, observaciones, session['user']))
+    conn.execute('INSERT INTO arqueos (sucursal, fecha, semana, fondo_sistema, efectivo_real, diferencia, observaciones, usuario, detalle) VALUES (?,?,?,?,?,?,?,?,?)',
+                 (sucursal, fecha_str, semana, fondo_sistema, efectivo_real, diferencia, observaciones, session['user'], detalle_json))
     conn.commit()
     conn.close()
     
     flash("Arqueo registrado exitosamente. Gracias por cumplir con el proceso.", "success")
     return redirect(f'/resumen_empresa/{sucursal}')
+
+# =============== EDICIÓN Y ELIMINACIÓN DE ARQUEOS ===============
+@app.route('/editar_arqueo/<int:id>', methods=['POST'])
+def editar_arqueo(id):
+    if not es_admin():
+        return redirect('/')
+    
+    nuevo_efectivo = safe_float(request.form.get('efectivo_real'))
+    nuevas_obs = request.form.get('observaciones', '')
+    
+    detalle = {
+        '1000': safe_int(request.form.get('billete_1000')),
+        '500': safe_int(request.form.get('billete_500')),
+        '200': safe_int(request.form.get('billete_200')),
+        '100': safe_int(request.form.get('billete_100')),
+        '50': safe_int(request.form.get('billete_50')),
+        '20': safe_int(request.form.get('billete_20')),
+        'monedas': safe_float(request.form.get('monedas'))
+    }
+    detalle_json = json.dumps(detalle)
+    
+    conn = sqlite3.connect(DB_NAME, timeout=10.0)
+    cursor = conn.cursor()
+    
+    arqueo = cursor.execute('SELECT * FROM arqueos WHERE id = ?', (id,)).fetchone()
+    if not arqueo:
+        conn.close()
+        flash("Arqueo no encontrado.", "danger")
+        return redirect(request.referrer or '/')
+    
+    fondo_sistema = arqueo[4]
+    nueva_diferencia = nuevo_efectivo - fondo_sistema
+    
+    cursor.execute('''UPDATE arqueos 
+                      SET efectivo_real = ?, diferencia = ?, observaciones = ?, detalle = ?
+                      WHERE id = ?''',
+                   (nuevo_efectivo, nueva_diferencia, nuevas_obs, detalle_json, id))
+    conn.commit()
+    conn.close()
+    
+    flash(f"Arqueo #{id} actualizado correctamente (incluye detalle de billetes).", "success")
+    return redirect(request.referrer or f'/resumen_empresa/{arqueo[1]}')
+
+@app.route('/eliminar_arqueo/<int:id>', methods=['POST'])
+def eliminar_arqueo(id):
+    if not es_admin():
+        return redirect('/')
+    
+    conn = sqlite3.connect(DB_NAME, timeout=10.0)
+    cursor = conn.cursor()
+    
+    arqueo = cursor.execute('SELECT * FROM arqueos WHERE id = ?', (id,)).fetchone()
+    if not arqueo:
+        conn.close()
+        flash("Arqueo no encontrado.", "danger")
+        return redirect(request.referrer or '/')
+    
+    sucursal = arqueo[1]
+    cursor.execute('DELETE FROM arqueos WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    
+    flash(f"Arqueo #{id} eliminado permanentemente.", "warning")
+    return redirect(request.referrer or f'/resumen_empresa/{sucursal}')
 
 # ------------------------------------------------------------
 # 12. ACCESO
@@ -1252,6 +1364,14 @@ def login():
             session['rol'] = user['rol']
             session['sucursal'] = user['sucursal']
             session.permanent = True
+            
+            token = str(uuid.uuid4())
+            session['session_token'] = token
+            sesiones_activas[user['username']] = {
+                'token': token,
+                'ultima_actividad': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'sucursal': user['sucursal']
+            }
             return redirect('/')
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
@@ -1259,8 +1379,46 @@ def login():
 
 @app.route('/logout')
 def logout():
+    user = session.get('user')
+    if user in sesiones_activas:
+        del sesiones_activas[user]
     session.clear()
     return redirect('/login')
+# ------------------------------------------------------------
+# 13. VISTA DE SESIONES ACTIVAS
+# ------------------------------------------------------------
+@app.route('/ver_sesiones')
+def ver_sesiones():
+    if not es_admin():
+        return redirect('/')
+    
+    ahora = datetime.now()
+    usuarios_inactivos = []
+    for u, datos in sesiones_activas.items():
+        try:
+            ultima = datetime.strptime(datos['ultima_actividad'], '%Y-%m-%d %H:%M:%S')
+            if (ahora - ultima).total_seconds() > 43200:
+                usuarios_inactivos.append(u)
+        except: pass
+    
+    for u in usuarios_inactivos:
+        if u in sesiones_activas:
+            del sesiones_activas[u]
+
+    return render_template('control_sesiones.html', sesiones=sesiones_activas)
+
+@app.route('/cerrar_sesion_remota/<usuario>', methods=['POST'])
+def cerrar_sesion_remota(usuario):
+    if not es_admin():
+        return redirect('/')
+    
+    if usuario in sesiones_activas:
+        del sesiones_activas[usuario]
+        flash(f"La sesión del usuario {usuario} ha sido cerrada remotamente.", "success")
+    else:
+        flash(f"El usuario {usuario} no tiene una sesión activa.", "warning")
+        
+    return redirect('/ver_sesiones')
 
 if __name__ == '__main__':
     init_db()

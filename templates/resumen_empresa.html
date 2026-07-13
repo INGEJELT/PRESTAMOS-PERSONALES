@@ -10,7 +10,7 @@
     <style>
         :root { --sidebar-width: 260px; --dark: #1a1d20; --success: #28a745; --primary: #007bff; }
         body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; }
-        .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; background: var(--dark); color: white; padding: 20px; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; background: var(--dark); color: white; padding: 20px; z-index: 1000; overflow-y: auto; }
         .main-content { margin-left: var(--sidebar-width); padding: 40px; width: 100%; }
         .logo-box { background: white; border-radius: 12px; padding: 10px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .kpi-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); height: 100%; }
@@ -19,7 +19,6 @@
         .table-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow-x: auto; }
         .badge-activo { background: #dc3545; color: white; font-size: 0.7rem; }
         
-        /* Estilos para exportación */
         @media print {
             .no-print { display: none !important; }
             .sidebar { display: none !important; }
@@ -46,12 +45,14 @@
         <a href="/graficas" class="btn btn-outline-info border-0 py-2 text-start"><i class="fas fa-chart-bar me-2"></i> Gráficas</a>
         <a href="/resumen_empresa" class="btn btn-outline-primary border-0 py-2 text-start active"><i class="fas fa-building me-2"></i> Resumen por Empresa</a>
         <a href="{{ url_for('static', filename='manual_prestamos.pdf') }}" target="_blank" class="btn btn-outline-light border-0 py-2"><i class="fas fa-book me-2 text-warning"></i> Manual de Ayuda</a>
+        {% if admin %}
         <button class="btn btn-outline-info border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalUsuarios"><i class="fas fa-users-cog me-2"></i> Usuarios</button>
         <button class="btn btn-outline-success border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalExcel"><i class="fas fa-file-excel me-2"></i> Importar Masiva</button>
         <button class="btn btn-outline-secondary border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalSincronizar"><i class="fas fa-sync-alt me-2"></i> Sincronizar Empleados</button>
         <button class="btn btn-warning text-dark fw-bold btn-sm mt-4 shadow" data-bs-toggle="modal" data-bs-target="#modalAnio"><i class="fas fa-sync-alt me-2"></i> TRASPASO ANUAL</button>
-        <hr class="opacity-25 mt-5">
-        <a href="/logout" class="btn btn-danger btn-sm w-100 mt-5"><i class="fas fa-sign-out-alt"></i> Salir</a>
+        {% endif %}
+        <hr class="opacity-25 mt-4">
+        <a href="/logout" class="btn btn-danger btn-sm w-100 mt-2 mb-3"><i class="fas fa-sign-out-alt"></i> Salir</a>
     </nav>
 </div>
 
@@ -69,7 +70,7 @@
 
     {% if arqueo_pendiente %}
     <div class="alert alert-danger shadow-lg border-danger mb-4" role="alert">
-        <h4 class="alert-heading fw-bold"><i class="fas fa-exclamation-triangle"></i> ¡ARQUEO DE LUNES OBLIGATORIO!</h4>
+        <h4 class="alert-heading fw-bold"><i class="fas fa-exclamation-triangle"></i> ¡ARQUEO SEMANAL OBLIGATORIO!</h4>
         <p>Por políticas de la empresa, es estrictamente obligatorio realizar el Cuadre de Caja de tu sucursal antes de poder operar libremente en el sistema.</p>
         <hr>
         <button class="btn btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#modalArqueo">
@@ -84,7 +85,10 @@
             <p class="text-muted mb-0">Visualiza el estado financiero de cada sucursal por separado</p>
         </div>
         <div class="no-print">
+            <!-- Solo el admin ve el botón de arqueo manual -->
+            {% if admin %}
             <button class="btn btn-warning shadow-sm text-dark fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalArqueo"><i class="fas fa-cash-register me-2"></i> Arqueo</button>
+            {% endif %}
             <button class="btn btn-secondary shadow-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalHistorialArqueos"><i class="fas fa-history me-2"></i> Historial Arqueos</button>
             <a href="/" class="btn btn-dark shadow-sm me-2"><i class="fas fa-arrow-left me-2"></i> Volver</a>
             <button onclick="exportarPDF()" class="btn btn-danger shadow-sm"><i class="fas fa-file-pdf me-2"></i> Exportar PDF</button>
@@ -96,11 +100,15 @@
         <div class="row align-items-center">
             <div class="col-md-8">
                 <label class="fw-bold text-muted text-uppercase small">Seleccionar Sucursal</label>
+                {% if admin %}
                 <select id="selectorSucursal" class="form-select form-select-lg w-50 shadow-sm" onchange="location = '/resumen_empresa/' + this.value;">
                     {% for s in sucursales %}
                     <option value="{{ s }}" {% if s == sucursal %}selected{% endif %}>{{ s }}</option>
                     {% endfor %}
                 </select>
+                {% else %}
+                <input type="text" class="form-control form-control-lg w-50 bg-light fw-bold text-center" value="{{ sucursal }}" readonly>
+                {% endif %}
             </div>
             <div class="col-md-4 text-end">
                 <span class="badge bg-dark fs-6 p-2"><i class="fas fa-calendar-alt me-1"></i> AÑO {{ anio_act }}</span>
@@ -108,7 +116,6 @@
         </div>
     </div>
 
-    <!-- KPIs: ahora 5 columnas -->
     <div class="row mb-4">
         <div class="col-lg-2 col-md-4 mb-2">
             <div class="kpi-card shadow-sm border-primary">
@@ -232,12 +239,13 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalArqueo" {% if arqueo_pendiente %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %} tabindex="-1">
+<!-- Modal Arqueo -->
+<div class="modal fade" id="modalArqueo" {% if arqueo_pendiente and not admin %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %} tabindex="-1">
     <div class="modal-dialog">
         <form action="/guardar_arqueo" method="post" class="modal-content border-danger">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title fw-bold"><i class="fas fa-cash-register"></i> Arqueo de Caja - {{ sucursal }}</h5>
-                {% if not arqueo_pendiente %}
+                {% if not arqueo_pendiente or admin %}
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 {% endif %}
             </div>
@@ -276,43 +284,43 @@
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$1,000</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="1000" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_1000" class="form-control billete-input" data-valor="1000" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$500</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="500" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_500" class="form-control billete-input" data-valor="500" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$200</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="200" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_200" class="form-control billete-input" data-valor="200" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$100</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="100" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_100" class="form-control billete-input" data-valor="100" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$50</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="50" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_50" class="form-control billete-input" data-valor="50" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">$20</span>
-                                    <input type="number" min="0" class="form-control billete-input" data-valor="20" placeholder="Cant.">
+                                    <input type="number" min="0" name="billete_20" class="form-control billete-input" data-valor="20" placeholder="Cant.">
                                 </div>
                             </div>
                             <div class="col-12 mt-2">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text fw-bold">Monedas / Otros $</span>
-                                    <input type="number" step="0.01" min="0" class="form-control billete-input" id="monedas_input" data-valor="1" placeholder="Monto total en monedas">
+                                    <input type="number" step="0.01" min="0" name="monedas" class="form-control billete-input" id="monedas_input" data-valor="1" placeholder="Monto total en monedas">
                                 </div>
                             </div>
                         </div>
@@ -345,6 +353,7 @@
     </div>
 </div>
 
+<!-- Modal Historial de Arqueos (con acciones de admin y botón Detalle) -->
 <div class="modal fade" id="modalHistorialArqueos" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -364,6 +373,9 @@
                                 <th>Diferencia</th>
                                 <th class="w-25 text-start">Observaciones</th>
                                 <th>Usuario</th>
+                                {% if admin %}
+                                <th class="no-print">Acciones</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -378,10 +390,25 @@
                                 </td>
                                 <td class="text-start fst-italic text-muted">{{ a.observaciones or 'Sin observaciones' }}</td>
                                 <td><span class="badge bg-secondary"><i class="fas fa-user"></i> {{ a.usuario }}</span></td>
+                                {% if admin %}
+                                <td class="no-print">
+                                    <button class="btn btn-sm btn-outline-info me-1" title="Ver Detalle" data-detalle="{{ a.detalle_json }}" onclick="mostrarDetalleArqueo(this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm fw-bold me-1" data-bs-toggle="modal" data-bs-target="#modalEditarArqueo{{ a.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEliminarArqueo{{ a.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="text-muted py-5"><i class="fas fa-info-circle fa-2x mb-3 d-block text-secondary"></i> No hay arqueos registrados en esta sucursal.</td>
+                                <td colspan="{{ 8 if admin else 7 }}" class="text-muted py-5">
+                                    <i class="fas fa-info-circle fa-2x mb-3 d-block text-secondary"></i> No hay arqueos registrados en esta sucursal.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -392,6 +419,141 @@
     </div>
 </div>
 
+<!-- Modal para mostrar detalle de billetes -->
+<div class="modal fade" id="modalDetalleArqueo" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-money-bill-wave"></i> Desglose de Efectivo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="detalleArqueoBody">
+                <p class="text-muted">Cargando...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para editar y eliminar arqueos (solo admin) -->
+{% if admin %}
+    {% for a in historial_arqueos %}
+    <!-- Modal Editar Arqueo -->
+    <div class="modal fade" id="modalEditarArqueo{{ a.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="/editar_arqueo/{{ a.id }}" method="POST" class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-edit"></i> Editar Arqueo #{{ a.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% set detalle = a.detalle if a.detalle else {} %}
+                    <div class="card border-secondary mb-3">
+                        <div class="card-header bg-secondary text-white py-1">
+                            <h6 class="mb-0 fw-bold small"><i class="fas fa-money-bill-wave"></i> Desglose de Efectivo Físico</h6>
+                        </div>
+                        <div class="card-body p-2 bg-light">
+                            <div class="row g-2 small">
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$1,000</span>
+                                        <input type="number" min="0" name="billete_1000" class="form-control" value="{{ detalle.get('1000', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$500</span>
+                                        <input type="number" min="0" name="billete_500" class="form-control" value="{{ detalle.get('500', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$200</span>
+                                        <input type="number" min="0" name="billete_200" class="form-control" value="{{ detalle.get('200', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$100</span>
+                                        <input type="number" min="0" name="billete_100" class="form-control" value="{{ detalle.get('100', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$50</span>
+                                        <input type="number" min="0" name="billete_50" class="form-control" value="{{ detalle.get('50', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$20</span>
+                                        <input type="number" min="0" name="billete_20" class="form-control" value="{{ detalle.get('20', 0) }}" placeholder="Cant.">
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text fw-bold">Monedas / Otros $</span>
+                                        <input type="number" step="0.01" min="0" name="monedas" class="form-control" value="{{ detalle.get('monedas', 0) }}" placeholder="Monto total en monedas">
+                                    </div>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white fw-bold">TOTAL FÍSICO $</span>
+                                <input type="number" step="0.01" name="efectivo_real" id="efectivo_real_edit" class="form-control border-primary form-control-lg fw-bold text-center" value="{{ a.efectivo_real }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold text-muted small">Observaciones</label>
+                        <textarea name="observaciones" class="form-control" rows="3">{{ a.observaciones or '' }}</textarea>
+                    </div>
+                    <p class="text-muted small mt-2"><i class="fas fa-info-circle"></i> El fondo sistema permanece sin cambios. La diferencia se recalculará automáticamente al guardar.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Eliminar Arqueo -->
+    <div class="modal fade" id="modalEliminarArqueo{{ a.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="/eliminar_arqueo/{{ a.id }}" method="POST" class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-trash"></i> Eliminar Arqueo #{{ a.id }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="fw-bold">¿Estás seguro de eliminar este arqueo?</p>
+                    <ul class="list-unstyled">
+                        <li><strong>Fecha:</strong> {{ a.fecha.split(' ')[0] }}</li>
+                        <li><strong>Semana:</strong> {{ a.semana }}</li>
+                        <li><strong>Efectivo:</strong> ${{ "{:,.2f}".format(a.efectivo_real) }}</li>
+                        <li><strong>Diferencia:</strong> ${{ "{:,.2f}".format(a.diferencia) }}</li>
+                    </ul>
+                    <p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Esta acción es irreversible.</p>
+                    <div class="mb-2">
+                        <label class="fw-bold text-muted small">Motivo (opcional)</label>
+                        <input type="text" name="motivo" class="form-control" placeholder="Ej. Arqueo duplicado">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Eliminar Permanentemente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Los demás modales (Fondo, Excel, Usuarios, Sincronizar, Traspaso) se mantienen igual -->
 <div class="modal fade" id="modalFondo" tabindex="-1"><div class="modal-dialog"><form action="/configurar_fondo" method="post" class="modal-content"><div class="modal-header bg-dark text-white"><h5>Configurar Fondo</h5></div><div class="modal-body p-4"><select name="sucursal_caja" class="form-select mb-3">{% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}</select><input type="number" step="0.01" name="monto_inicial" class="form-control" required></div><div class="modal-footer"><button type="submit" class="btn btn-primary w-100 shadow">ESTABLECER</button></div></form></div></div>
 
 <div class="modal fade" id="modalExcel" tabindex="-1"><div class="modal-dialog"><form action="/importar_excel" method="post" enctype="multipart/form-data" class="modal-content"><div class="modal-header bg-success text-white"><h5>Importación Masiva</h5></div><div class="modal-body p-4"><input type="file" name="archivo_excel" class="form-control mb-3" required><select name="sucursal_importacion" class="form-select">{% for s in ['TACUBA', 'BOMBILLA', 'RESTORANES', 'NAPOLES', 'BRIGAR', 'BGARI'] %}<option>{{ s }}</option>{% endfor %}</select></div><div class="modal-footer"><button type="submit" class="btn btn-success w-100 shadow">CARGAR</button></div></form></div></div>
@@ -428,25 +590,22 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 {% endif %}
 
-// FUNCION NUEVA PARA CALCULAR LA DIFERENCIA DEL ARQUEO TOMANDO EL DESGLOSE DE BILLETES
 function calcularDiferencia() {
     let sistema = parseFloat("{{ fondo_actual }}") || 0;
     
     let total_fisico = 0;
     
-    // Sumar todos los inputs de billetes
     document.querySelectorAll('.billete-input').forEach(function(input) {
         let cant = parseFloat(input.value) || 0;
         let valor = parseFloat(input.getAttribute('data-valor')) || 0;
         
         if (input.id === 'monedas_input') {
-            total_fisico += cant; // Las monedas/morralla se toman como monto directo
+            total_fisico += cant; 
         } else {
-            total_fisico += (cant * valor); // Los billetes se multiplican por su denominación
+            total_fisico += (cant * valor); 
         }
     });
 
-    // Colocar el cálculo total en el input central que ahora es de solo lectura
     let inputEfectivoReal = document.getElementById('efectivo_real');
     inputEfectivoReal.value = total_fisico > 0 ? total_fisico.toFixed(2) : '';
 
@@ -455,7 +614,6 @@ function calcularDiferencia() {
     let difInput = document.getElementById('diferencia_vista');
     difInput.value = diferencia.toFixed(2);
     
-    // Cambiar colores en tiempo real
     if(diferencia < 0) {
         difInput.className = "form-control fw-bold bg-danger text-white text-center";
     } else if (diferencia > 0) {
@@ -465,7 +623,6 @@ function calcularDiferencia() {
     }
 }
 
-// Escuchar cambios en los inputs de billetes en tiempo real
 document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll('.billete-input').forEach(function(input) {
         input.addEventListener('input', calcularDiferencia);
@@ -477,7 +634,7 @@ function filtrarTabla() {
     let tr = document.getElementById("tablaEmpleados").getElementsByTagName("tr");
     let sumPrestado = 0, sumRecuperado = 0, sumPendiente = 0;
     
-    for (let i = 1; i < tr.length - 1; i++) { // -1 para no contar el footer
+    for (let i = 1; i < tr.length - 1; i++) { 
         let tdId = tr[i].getElementsByTagName("td")[0];
         let tdNomina = tr[i].getElementsByTagName("td")[1];
         let tdNombre = tr[i].getElementsByTagName("td")[2];
@@ -490,7 +647,6 @@ function filtrarTabla() {
             
             if (coincide) {
                 tr[i].style.display = "";
-                // Sumar valores de las celdas visibles
                 let prestamo = parseFloat(tr[i].cells[5].textContent.replace('$', '').replace(/,/g, ''));
                 let recuperado = parseFloat(tr[i].cells[6].textContent.replace('$', '').replace(/,/g, ''));
                 let pendiente = parseFloat(tr[i].cells[7].textContent.replace('$', '').replace(/,/g, ''));
@@ -503,7 +659,6 @@ function filtrarTabla() {
         }
     }
     
-    // Actualizar totales en el footer
     document.getElementById("total_prestado_foot").innerText = "$" + sumPrestado.toLocaleString('en-US', {minimumFractionDigits: 2});
     document.getElementById("total_recuperado_foot").innerText = "$" + sumRecuperado.toLocaleString('en-US', {minimumFractionDigits: 2});
     document.getElementById("total_pendiente_foot").innerText = "$" + sumPendiente.toLocaleString('en-US', {minimumFractionDigits: 2});
@@ -513,13 +668,11 @@ function exportarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
     
-    // Título
     doc.setFontSize(16);
     doc.text("Resumen por Empresa - {{ sucursal }}", 14, 15);
     doc.setFontSize(10);
     doc.text("Generado: " + new Date().toLocaleString('es-MX'), 14, 25);
     
-    // Capturar la tabla con estilos
     doc.autoTable({
         html: '#tablaEmpleados',
         startY: 35,
@@ -537,12 +690,11 @@ function exportarPDF() {
 function exportarExcel() {
     let tabla = document.getElementById("tablaEmpleados").cloneNode(true);
     
-    // Eliminar la columna de acciones (índice 8) para Excel
     let rows = tabla.getElementsByTagName("tr");
     for (let i = 0; i < rows.length; i++) {
         let cells = rows[i].getElementsByTagName("td");
         if (cells.length > 8) {
-            cells[8].remove(); // Eliminar columna de acciones
+            cells[8].remove(); 
         }
         let headers = rows[i].getElementsByTagName("th");
         if (headers.length > 8) {
@@ -580,6 +732,68 @@ function exportarExcel() {
     a.href = url;
     a.download = "Resumen_Empresa_{{ sucursal }}.xls";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// Función para mostrar el detalle de billetes
+function mostrarDetalleArqueo(btn) {
+    const detalleJson = btn.getAttribute('data-detalle');
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalleArqueo'));
+    const body = document.getElementById('detalleArqueoBody');
+    
+    console.log('Detalle JSON recibido:', detalleJson);
+    
+    try {
+        const detalle = JSON.parse(detalleJson);
+        console.log('Detalle parseado:', detalle);
+        
+        if (!detalle || Object.keys(detalle).length === 0 || (Object.values(detalle).every(v => v === 0))) {
+            body.innerHTML = `<p class="text-muted">No hay detalle disponible para este arqueo.</p>`;
+        } else {
+            let html = `
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr><th>Denominación</th><th>Cantidad</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            const denominaciones = ['1000', '500', '200', '100', '50', '20'];
+            let totalDetalle = 0;
+            let hayDatos = false;
+            denominaciones.forEach(function(den) {
+                const cant = detalle[den] || 0;
+                const subtotal = cant * parseInt(den);
+                totalDetalle += subtotal;
+                if (cant > 0) {
+                    hayDatos = true;
+                    html += `<tr><td>$${den}</td><td>${cant}</td><td>$${subtotal.toFixed(2)}</td></tr>`;
+                }
+            });
+            // Monedas
+            const monedas = detalle.monedas || 0;
+            if (monedas > 0) {
+                hayDatos = true;
+                html += `<tr><td>Monedas / Otros</td><td>—</td><td>$${monedas.toFixed(2)}</td></tr>`;
+                totalDetalle += monedas;
+            }
+            if (!hayDatos) {
+                body.innerHTML = `<p class="text-muted">No hay billetes o monedas registrados en este arqueo.</p>`;
+                modal.show();
+                return;
+            }
+            html += `
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr><th colspan="2">Total Efectivo Físico</th><th>$${totalDetalle.toFixed(2)}</th></tr>
+                    </tfoot>
+                </table>
+            `;
+            body.innerHTML = html;
+        }
+    } catch (e) {
+        console.error('Error al parsear detalle:', e);
+        body.innerHTML = `<p class="text-danger">Error al mostrar el detalle. El formato de datos es incorrecto.<br><small>${e.message}</small></p>`;
+    }
+    modal.show();
 }
 </script>
 </body>

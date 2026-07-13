@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Sesiones | El Cardenal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; padding: 40px; }
+        .card-sesion { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: white; border-left: 5px solid #198754; }
+        .card-sesion.admin-card { border-left-color: #0dcaf0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            <strong>Notificación:</strong> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-0"><i class="fas fa-desktop me-2 text-primary"></i> Sesiones Activas</h2>
+            <p class="text-muted mb-0">Monitorea y gestiona los usuarios que están operando el sistema</p>
+        </div>
+        <a href="/" class="btn btn-dark shadow-sm"><i class="fas fa-arrow-left me-2"></i> Volver al Dashboard</a>
+    </div>
+
+    <div class="row">
+        {% for usuario, datos in sesiones.items() %}
+        <div class="col-md-4 mb-4">
+            <div class="card card-sesion {{ 'admin-card' if usuario == 'SISTEMAS' else '' }} p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fas fa-user-circle me-2 text-secondary"></i> {{ usuario }}</h5>
+                    {% if usuario == 'SISTEMAS' %}
+                        <span class="badge bg-info text-dark">TÚ (ADMINISTRADOR)</span>
+                    {% else %}
+                        <span class="badge bg-success">EN LÍNEA</span>
+                    {% endif %}
+                </div>
+                <hr class="mt-1 mb-2">
+                <p class="small text-muted mb-1"><i class="fas fa-building me-1"></i> Sucursal: <strong>{{ datos.sucursal }}</strong></p>
+                <p class="small text-muted mb-3"><i class="fas fa-clock me-1"></i> Última Actividad: <strong>{{ datos.ultima_actividad }}</strong></p>
+                
+                {% if usuario != 'SISTEMAS' %}
+                <div class="mt-auto">
+                    <form action="/cerrar_sesion_remota/{{ usuario }}" method="POST" onsubmit="return confirm('¿Estás seguro de cerrar la sesión de {{ usuario }}? Se le enviará a la pantalla de login inmediatamente.');">
+                        <button type="submit" class="btn btn-danger btn-sm w-100 fw-bold"><i class="fas fa-sign-out-alt me-1"></i> EXPULSAR DEL SISTEMA</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="fas fa-user-slash fa-3x mb-3"></i>
+            <h5>No hay sesiones activas en este momento</h5>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
