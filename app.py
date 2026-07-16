@@ -1,12 +1,17 @@
 import sqlite3
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import re
 import uuid
 import json
+import io
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 app = Flask(__name__)
 app.secret_key = "cardenal_master_key_2026"
@@ -723,25 +728,31 @@ def r_kardex_emp():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.row_factory = sqlite3.Row
     
-    nomina_empleado = conn.execute('SELECT nomina FROM prestamos WHERE id = ?', (emp_id,)).fetchone()
-    if not nomina_empleado:
+    # Obtener el préstamo seleccionado para conocer la nómina y la sucursal
+    prestamo_seleccionado = conn.execute('SELECT nomina, sucursal FROM prestamos WHERE id = ?', (emp_id,)).fetchone()
+    if not prestamo_seleccionado:
         conn.close()
         flash("Empleado no encontrado", "danger")
         return redirect('/reportes')
     
-    nomina = nomina_empleado['nomina']
+    nomina = prestamo_seleccionado['nomina']
+    sucursal_origen = prestamo_seleccionado['sucursal']
     
-    todos_prestamos = conn.execute('''
+    # Siempre filtrar por la sucursal del préstamo seleccionado
+    query = '''
         SELECT * FROM prestamos 
-        WHERE nomina = ? 
-        ORDER BY fecha_otorgamiento ASC
-    ''', (nomina,)).fetchall()
+        WHERE nomina = ? AND sucursal = ?
+    '''
+    params = [nomina, sucursal_origen]
+    
+    todos_prestamos = conn.execute(query, params).fetchall()
     
     if not todos_prestamos:
         conn.close()
-        flash("No se encontraron préstamos para este empleado", "danger")
+        flash("No se encontraron préstamos para este empleado en esta sucursal.", "danger")
         return redirect('/reportes')
     
+    # Tomar el primer préstamo para datos base del empleado
     emp = todos_prestamos[0]
     
     prestamos_con_movimientos = []
@@ -999,9 +1010,10 @@ def nuevo_prestamo():
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     cursor = conn.cursor()
     
-    existente = cursor.execute('SELECT saldo_pendiente FROM prestamos WHERE nomina = ? AND saldo_pendiente > 0', (n,)).fetchone()
+    # Verificar si el empleado tiene un préstamo vigente en la MISMA sucursal
+    existente = cursor.execute('SELECT saldo_pendiente FROM prestamos WHERE nomina = ? AND sucursal = ? AND saldo_pendiente > 0', (n, s)).fetchone()
     if existente and existente[0] > 0 and str(motivo).strip() == '':
-        flash(f"El empleado {nom} ya tiene un préstamo vigente de ${existente[0]}. Debes ingresar un MOTIVO obligatorio para agregarle otro.", "danger")
+        flash(f"El empleado {nom} ya tiene un préstamo vigente de ${existente[0]:,.2f} en esta sucursal. Debes ingresar un MOTIVO obligatorio para agregarle otro.", "danger")
         conn.close()
         return redirect('/')
     
@@ -1199,7 +1211,7 @@ def resumen_empresa(sucursal):
         historial_arqueos_parsed.append(a_dict)
     
     prestamos_activos = conn.execute('''
-        SELECT id, id_empleado, nomina, empleado, area, monto_inicial, saldo_pendiente, fecha_ingreso,
+        SELECT id, id_empleado, nomina, empleado, area, puesto, monto_inicial, saldo_pendiente, fecha_ingreso,
                (monto_inicial - saldo_pendiente) as recuperado
         FROM prestamos 
         WHERE sucursal = ? AND saldo_pendiente > 0
@@ -1348,6 +1360,221 @@ def eliminar_arqueo(id):
     flash(f"Arqueo #{id} eliminado permanentemente.", "warning")
     return redirect(request.referrer or f'/resumen_empresa/{sucursal}')
 
+# ================= EXPORTAR KARDEX DE ARQUEOS =================
+def crear_excel_profesional(dataframe, nombre_empresa, titulo, output):
+    """Crea un Excel profesional con estilos a partir de un DataFrame"""
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        dataframe.to_excel(writer, index=False, sheet_name='Kardex Arqueos')
+        wb = writer.book
+        ws = wb['Kardex Arqueos']
+        
+        # Insertar filas de título
+        ws.insert_rows(1, 4)
+        
+        # Título del reporte
+        title_cell = ws['A1']
+        title_cell.value = titulo
+        title_cell.font = Font(size=16, bold=True, color='1A1D20')
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+        ws.merge_cells('A1:P1')
+        
+        # Nombre de la empresa
+        empresa_cell = ws['A2']
+        empresa_cell.value = nombre_empresa
+        empresa_cell.font = Font(size=12, bold=True, color='333333')
+        empresa_cell.alignment = Alignment(horizontal='center', vertical='center')
+        ws.merge_cells('A2:P2')
+        
+        # Fecha de emisión
+        fecha_cell = ws['A3']
+        fecha_cell.value = f"Fecha de Emisión: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+        fecha_cell.font = Font(size=10, color='666666')
+        fecha_cell.alignment = Alignment(horizontal='center', vertical='center')
+        ws.merge_cells('A3:P3')
+        
+        # Aplicar estilos profesionales a los encabezados (fila 5)
+        header_fill = PatternFill(start_color='1A1D20', end_color='1A1D20', fill_type='solid')
+        header_font = Font(color='FFFFFF', bold=True, size=11)
+        center_alignment = Alignment(horizontal='center', vertical='center')
+        
+        for cell in ws[5]:  # Fila 5 es donde están los encabezados después de insertar 4 filas
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_alignment
+        
+        # Colores alternados para filas
+        green_fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')
+        white_fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+        
+        for row in ws.iter_rows(min_row=6, max_row=ws.max_row):  # Desde fila 6 hasta el final
+            for cell in row:
+                if row[0].row % 2 == 0:
+                    cell.fill = green_fill
+                else:
+                    cell.fill = white_fill
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Formato de moneda para columnas numéricas
+        currency_fmt = '#,##0.00'
+        col_mapping = {
+            'Fondo Sistema': currency_fmt,
+            'Efectivo Físico': currency_fmt,
+            'Diferencia': currency_fmt
+        }
+        
+        for row in ws.iter_rows(min_row=6, max_row=ws.max_row):
+            for cell in row:
+                col_name = ws.cell(row=5, column=cell.column).value
+                if col_name in col_mapping:
+                    cell.number_format = currency_fmt
+        
+        # Bordes finos
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        for row in ws.iter_rows(min_row=5, max_row=ws.max_row):
+            for cell in row:
+                cell.border = thin_border
+        
+        # Ajustar ancho de columnas
+        max_col = ws.max_column
+        for col_idx in range(1, max_col + 1):
+            max_length = 0
+            col_letter = get_column_letter(col_idx)
+            for row in ws.iter_rows(min_row=5, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
+                for cell in row:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+            adjusted_width = min(max_length + 2, 40)
+            ws.column_dimensions[col_letter].width = adjusted_width
+
+@app.route('/exportar_kardex_arqueo/<int:id>')
+def exportar_kardex_arqueo(id):
+    if not es_admin():
+        return redirect('/')
+    
+    conn = sqlite3.connect(DB_NAME, timeout=10.0)
+    conn.row_factory = sqlite3.Row
+    arqueo = conn.execute('SELECT * FROM arqueos WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    
+    if not arqueo:
+        flash("Arqueo no encontrado.", "danger")
+        return redirect(request.referrer or '/')
+    
+    # Convertir a diccionario y parsear detalle
+    a_dict = dict(arqueo)
+    try:
+        detalle = json.loads(a_dict.get('detalle', '{}'))
+    except:
+        detalle = {}
+    
+    # Construir DataFrame con una fila
+    data = {
+        'ID': [a_dict['id']],
+        'Fecha': [a_dict['fecha']],
+        'Semana': [a_dict['semana']],
+        'Sucursal': [a_dict['sucursal']],
+        'Fondo Sistema': [a_dict['fondo_sistema']],
+        'Efectivo Físico': [a_dict['efectivo_real']],
+        'Diferencia': [a_dict['diferencia']],
+        'Usuario': [a_dict['usuario']],
+        'Observaciones': [a_dict['observaciones'] or ''],
+        'Billetes $1000': [detalle.get('1000', 0)],
+        'Billetes $500': [detalle.get('500', 0)],
+        'Billetes $200': [detalle.get('200', 0)],
+        'Billetes $100': [detalle.get('100', 0)],
+        'Billetes $50': [detalle.get('50', 0)],
+        'Billetes $20': [detalle.get('20', 0)],
+        'Monedas/Otros': [detalle.get('monedas', 0)]
+    }
+    
+    df = pd.DataFrame(data)
+    
+    # Generar Excel profesional
+    output = io.BytesIO()
+    nombre_empresa = "EL CARDENAL"
+    titulo = f"REPORTE DE ARQUEO - SUCURSAL {a_dict['sucursal']} - #{a_dict['id']}"
+    crear_excel_profesional(df, nombre_empresa, titulo, output)
+    output.seek(0)
+    
+    nombre_archivo = f"Kardex_Arqueo_{a_dict['id']}_{a_dict['fecha'][:10]}.xlsx"
+    return send_file(output, download_name=nombre_archivo, as_attachment=True,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/exportar_kardex_arqueos', methods=['POST'])
+def exportar_kardex_arqueos():
+    if not es_admin():
+        return redirect('/')
+    
+    ids = request.form.getlist('ids')
+    if not ids:
+        flash("No seleccionaste ningún arqueo.", "warning")
+        return redirect(request.referrer or '/')
+    
+    # Convertir a enteros
+    ids = [int(i) for i in ids if i.isdigit()]
+    
+    if not ids:
+        flash("IDs inválidos.", "danger")
+        return redirect(request.referrer or '/')
+    
+    conn = sqlite3.connect(DB_NAME, timeout=10.0)
+    conn.row_factory = sqlite3.Row
+    placeholders = ','.join('?' * len(ids))
+    arqueos = conn.execute(f'SELECT * FROM arqueos WHERE id IN ({placeholders})', ids).fetchall()
+    conn.close()
+    
+    if not arqueos:
+        flash("No se encontraron arqueos.", "danger")
+        return redirect(request.referrer or '/')
+    
+    # Construir lista de diccionarios
+    rows = []
+    for a in arqueos:
+        a_dict = dict(a)
+        try:
+            detalle = json.loads(a_dict.get('detalle', '{}'))
+        except:
+            detalle = {}
+        rows.append({
+            'ID': a_dict['id'],
+            'Fecha': a_dict['fecha'],
+            'Semana': a_dict['semana'],
+            'Sucursal': a_dict['sucursal'],
+            'Fondo Sistema': a_dict['fondo_sistema'],
+            'Efectivo Físico': a_dict['efectivo_real'],
+            'Diferencia': a_dict['diferencia'],
+            'Usuario': a_dict['usuario'],
+            'Observaciones': a_dict['observaciones'] or '',
+            'Billetes $1000': detalle.get('1000', 0),
+            'Billetes $500': detalle.get('500', 0),
+            'Billetes $200': detalle.get('200', 0),
+            'Billetes $100': detalle.get('100', 0),
+            'Billetes $50': detalle.get('50', 0),
+            'Billetes $20': detalle.get('20', 0),
+            'Monedas/Otros': detalle.get('monedas', 0)
+        })
+    
+    df = pd.DataFrame(rows)
+    
+    # Generar Excel profesional
+    output = io.BytesIO()
+    nombre_empresa = "EL CARDENAL"
+    titulo = f"REPORTE DE ARQUEOS - {len(rows)} REGISTROS SELECCIONADOS"
+    crear_excel_profesional(df, nombre_empresa, titulo, output)
+    output.seek(0)
+    
+    nombre_archivo = f"Kardex_Arqueos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return send_file(output, download_name=nombre_archivo, as_attachment=True,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
 # ------------------------------------------------------------
 # 12. ACCESO
 # ------------------------------------------------------------
@@ -1427,4 +1654,4 @@ if __name__ == '__main__':
     print(" SERVIDOR EL CARDENAL INICIADO ")
     print(" Puerto: 5004")
     print("=====================================================")
-    serve(app, host='0.0.0.0', port=5034)
+    serve(app, host='0.0.0.0', port=5004)
