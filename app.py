@@ -80,6 +80,7 @@ def init_db():
 
 def es_admin():
     return session.get('rol') == 'ADMIN'
+
 # ------------------------------------------------------------
 # CONTROL DE SESIONES ACTIVAS Y EXPULSIÓN
 # ------------------------------------------------------------
@@ -151,29 +152,47 @@ def obtener_prefijo_sucursal(sucursal):
     return prefijos.get(sucursal.upper(), 'XXX')
 
 def formatear_nomina_para_id(nomina):
-    nomina_str = str(nomina).strip()
-    nomina_limpia = re.sub(r'[.\- ]', '', nomina_str)
-    if nomina_limpia.isdigit():
-        return nomina_limpia.zfill(5)
+    """Convierte la nómina a un número con ceros a la izquierda según su longitud."""
+    try:
+        # Convertir a entero para eliminar ceros a la izquierda
+        num = int(str(nomina).strip())
+    except ValueError:
+        # Si no es numérico, devolver como está (ej: "A123")
+        return str(nomina).strip()
+    
+    # Determinar cantidad de ceros según los dígitos del número
+    digitos = len(str(num))
+    if digitos <= 2:
+        ceros = 3  # 000
+    elif digitos == 3:
+        ceros = 2  # 00
+    elif digitos == 4:
+        ceros = 1  # 0
     else:
-        return nomina_limpia
+        ceros = 0  # sin ceros
+    
+    return str(num).zfill(ceros + digitos)  # zfill rellena con ceros a la izquierda
 
 def generar_id_empleado(sucursal, nomina, conn):
+    """Genera un ID de empleado con el formato: PREFIJO + CEROS + NOMINA [+ _N]"""
     prefijo = obtener_prefijo_sucursal(sucursal)
     nomina_formateada = formatear_nomina_para_id(nomina)
     base_id = f"{prefijo}{nomina_formateada}"
+    
     cursor = conn.cursor()
+    # Verificar si el ID base ya existe
     cursor.execute("SELECT id_empleado FROM prestamos WHERE sucursal = ? AND id_empleado = ?", (sucursal, base_id))
     if not cursor.fetchone():
         return base_id
-    else:
-        contador = 1
-        while True:
-            nuevo_id = f"{base_id}_{contador}"
-            cursor.execute("SELECT id_empleado FROM prestamos WHERE sucursal = ? AND id_empleado = ?", (sucursal, nuevo_id))
-            if not cursor.fetchone():
-                return nuevo_id
-            contador += 1
+    
+    # Si existe, agregar sufijo _2, _3, ...
+    contador = 2
+    while True:
+        nuevo_id = f"{base_id}_{contador}"
+        cursor.execute("SELECT id_empleado FROM prestamos WHERE sucursal = ? AND id_empleado = ?", (sucursal, nuevo_id))
+        if not cursor.fetchone():
+            return nuevo_id
+        contador += 1
 
 # ------------------------------------------------------------
 # 2. CONFIGURACIÓN DE FONDO
@@ -1611,6 +1630,20 @@ def logout():
         del sesiones_activas[user]
     session.clear()
     return redirect('/login')
+
+# ------------------------------------------------------------
+# RUTA PARA EL MANUAL DE AYUDA SEGÚN ROL
+# ------------------------------------------------------------
+@app.route('/manual_ayuda')
+def manual_ayuda():
+    if 'user' not in session:
+        return redirect('/login')
+    
+    if es_admin():
+        return render_template('manual_el_cardenal.html')
+    else:
+        return render_template('manual_sucursal_profesional.html')
+
 # ------------------------------------------------------------
 # 13. VISTA DE SESIONES ACTIVAS
 # ------------------------------------------------------------

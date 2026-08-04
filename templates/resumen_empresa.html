@@ -44,7 +44,7 @@
         <a href="/reportes" class="btn btn-outline-light border-0 py-2"><i class="fas fa-file-invoice-dollar me-2"></i> Reportes</a>
         <a href="/graficas" class="btn btn-outline-info border-0 py-2 text-start"><i class="fas fa-chart-bar me-2"></i> Gráficas</a>
         <a href="/resumen_empresa" class="btn btn-outline-primary border-0 py-2 text-start active"><i class="fas fa-building me-2"></i> Resumen por Empresa</a>
-        <a href="{{ url_for('static', filename='manual_prestamos.pdf') }}" target="_blank" class="btn btn-outline-light border-0 py-2"><i class="fas fa-book me-2 text-warning"></i> Manual de Ayuda</a>
+        <a href="/manual_ayuda" target="_blank" class="btn btn-outline-light border-0 py-2"><i class="fas fa-book me-2 text-warning"></i> Manual de Ayuda</a>
         {% if admin %}
         <button class="btn btn-outline-info border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalUsuarios"><i class="fas fa-users-cog me-2"></i> Usuarios</button>
         <button class="btn btn-outline-success border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalExcel"><i class="fas fa-file-excel me-2"></i> Importar Masiva</button>
@@ -183,8 +183,8 @@
                     <th>ID Empleado</th>
                     <th>Nómina</th>
                     <th>Empleado</th>
-                    <th>Área</th>
                     <th>DEPARTAMENTO</th>
+                    <th>PUESTO</th>
                     <th class="text-end">Préstamo Inicial</th>
                     <th class="text-end text-success">Recuperado</th>
                     <th class="text-end text-danger">Saldo Pendiente</th>
@@ -203,7 +203,7 @@
                     <td class="fw-bold text-primary">{{ p.id_empleado or 'N/A' }}</td>
                     <td class="text-muted fw-bold">{{ p.nomina }}</td>
                     <td class="fw-bold">{{ p.empleado }}</td>
-                    <td>{{ p.area }}</td>
+                    <td>{{ p.area or 'N/A' }}</td>
                     <td>{{ p.puesto or 'N/A' }}</td>
                     <td class="text-end">${{ "{:,.2f}".format(p.monto_inicial) }}</td>
                     <td class="text-end text-success fw-bold">${{ "{:,.2f}".format(p.recuperado) }}</td>
@@ -353,7 +353,7 @@
     </div>
 </div>
 
-<!-- Modal Historial de Arqueos (con acciones de admin y botón Detalle) -->
+<!-- Modal Historial de Arqueos (con acciones de admin y botón Detalle para todos) -->
 <div class="modal fade" id="modalHistorialArqueos" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -362,10 +362,24 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
+                {% if admin %}
+                <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+                    <div>
+                        <button class="btn btn-sm btn-success" onclick="seleccionarTodosArqueos(true)"><i class="fas fa-check-double"></i> Seleccionar Todos</button>
+                        <button class="btn btn-sm btn-secondary" onclick="seleccionarTodosArqueos(false)"><i class="fas fa-times"></i> Deseleccionar</button>
+                    </div>
+                    <form action="/exportar_kardex_arqueos" method="POST" id="formExportarArqueos">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="exportarSeleccionados()">
+                            <i class="fas fa-file-excel"></i> Exportar Seleccionados
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered text-center align-middle small">
                         <thead class="table-light text-uppercase">
                             <tr>
+                                {% if admin %}<th><input type="checkbox" id="seleccionarTodosArqueos" onchange="toggleTodosArqueos(this)"></th>{% endif %}
                                 <th>Fecha</th>
                                 <th>Semana</th>
                                 <th>Fondo Sistema</th>
@@ -373,14 +387,13 @@
                                 <th>Diferencia</th>
                                 <th class="w-25 text-start">Observaciones</th>
                                 <th>Usuario</th>
-                                {% if admin %}
                                 <th class="no-print">Acciones</th>
-                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for a in historial_arqueos %}
                             <tr>
+                                {% if admin %}<td><input type="checkbox" name="ids" value="{{ a.id }}" class="checkbox-arqueo"></td>{% endif %}
                                 <td class="fw-bold">{{ a.fecha.split(' ')[0] }}</td>
                                 <td><span class="badge bg-primary">Semana {{ a.semana }}</span></td>
                                 <td class="text-muted">${{ "{:,.2f}".format(a.fondo_sistema) }}</td>
@@ -390,23 +403,28 @@
                                 </td>
                                 <td class="text-start fst-italic text-muted">{{ a.observaciones or 'Sin observaciones' }}</td>
                                 <td><span class="badge bg-secondary"><i class="fas fa-user"></i> {{ a.usuario }}</span></td>
-                                {% if admin %}
                                 <td class="no-print">
+                                    <!-- Botón Ver Detalle para TODOS los usuarios -->
                                     <button class="btn btn-sm btn-outline-info me-1" title="Ver Detalle" data-detalle="{{ a.detalle_json }}" onclick="mostrarDetalleArqueo(this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if admin %}
+                                    <!-- Botones exclusivos para administradores -->
+                                    <a href="/exportar_kardex_arqueo/{{ a.id }}" class="btn btn-sm btn-outline-success me-1" title="Exportar Kardex">
+                                        <i class="fas fa-file-excel"></i>
+                                    </a>
                                     <button class="btn btn-warning btn-sm fw-bold me-1" data-bs-toggle="modal" data-bs-target="#modalEditarArqueo{{ a.id }}">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEliminarArqueo{{ a.id }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    {% endif %}
                                 </td>
-                                {% endif %}
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="{{ 8 if admin else 7 }}" class="text-muted py-5">
+                                <td colspan="{{ 9 if admin else 8 }}" class="text-muted py-5">
                                     <i class="fas fa-info-circle fa-2x mb-3 d-block text-secondary"></i> No hay arqueos registrados en esta sucursal.
                                 </td>
                             </tr>
@@ -734,7 +752,7 @@ function exportarExcel() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// Función para mostrar el detalle de billetes
+// Función para mostrar el detalle de billetes (disponible para todos)
 function mostrarDetalleArqueo(btn) {
     const detalleJson = btn.getAttribute('data-detalle');
     const modal = new bootstrap.Modal(document.getElementById('modalDetalleArqueo'));
@@ -795,6 +813,43 @@ function mostrarDetalleArqueo(btn) {
     }
     modal.show();
 }
+
+// Funciones para manejar selección de arqueos (solo admin)
+{% if admin %}
+function toggleTodosArqueos(source) {
+    let checkboxes = document.querySelectorAll('.checkbox-arqueo');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+function seleccionarTodosArqueos(estado) {
+    let checkboxes = document.querySelectorAll('.checkbox-arqueo');
+    checkboxes.forEach(cb => cb.checked = estado);
+    let checkboxPrincipal = document.getElementById('seleccionarTodosArqueos');
+    if (checkboxPrincipal) checkboxPrincipal.checked = estado;
+}
+
+function exportarSeleccionados() {
+    let seleccionados = document.querySelectorAll('.checkbox-arqueo:checked');
+    if (seleccionados.length === 0) {
+        alert('Selecciona al menos un arqueo para exportar.');
+        return;
+    }
+    let form = document.getElementById('formExportarArqueos');
+    // Limpiar inputs previos
+    let inputs = form.querySelectorAll('input[name="ids"]');
+    inputs.forEach(inp => inp.remove());
+    // Agregar inputs ocultos por cada seleccionado
+    seleccionados.forEach(cb => {
+        let input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    form.submit();
+}
+{% endif %}
+
 </script>
 </body>
 </html>

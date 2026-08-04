@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Usuario - Sistema de Préstamos "El Cardenal"</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            background: #ffffff;
+            color: #1a1d20;
+            padding: 40px 50px;
+            line-height: 1.5;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 28px; color: #1a1d20; border-bottom: 4px solid #198754; padding-bottom: 10px; margin-bottom: 25px; }
+        h2 { font-size: 22px; color: #1a1d20; margin-top: 30px; margin-bottom: 12px; border-left: 5px solid #198754; padding-left: 15px; }
+        h3 { font-size: 18px; color: #1a1d20; margin-top: 22px; margin-bottom: 8px; }
+        h4 { font-size: 16px; color: #1a1d20; margin-top: 18px; margin-bottom: 6px; }
+        p { margin-bottom: 10px; text-align: justify; }
+        ul, ol { margin-left: 22px; margin-bottom: 12px; }
+        li { margin-bottom: 4px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+        th {
+            background-color: #1a1d20;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid #333;
+        }
+        td {
+            border: 1px solid #ccc;
+            padding: 7px 10px;
+            vertical-align: top;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            border-bottom: 3px solid #198754;
+            padding-bottom: 18px;
+        }
+        .header h1 { border-bottom: none; margin-bottom: 4px; font-size: 32px; }
+        .header p { color: #555; font-size: 14px; text-align: center; }
+        .footer {
+            margin-top: 45px;
+            border-top: 2px solid #198754;
+            padding-top: 18px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 16px; margin: 12px 0; border-radius: 4px; }
+        .tip { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 10px 16px; margin: 12px 0; border-radius: 4px; }
+        .warning { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px 16px; margin: 12px 0; border-radius: 4px; }
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+        .page-break { page-break-after: always; }
+        @media print {
+            body { padding: 30px 40px; font-size: 11px; }
+            h1 { font-size: 24px; }
+            h2 { font-size: 18px; }
+            h3 { font-size: 15px; }
+            table { font-size: 11px; }
+            .page-break { page-break-after: always; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>MANUAL DEL USUARIO</h1>
+    <p style="font-size: 22px; font-weight: bold; color: #198754;">Sistema de Préstamos "El Cardenal"</p>
+    <p style="font-size: 14px; color: #555;">Versión 1.0 – Julio 2026</p>
+</div>
+
+<!-- ================================================== -->
+<!-- ÍNDICE -->
+<!-- ================================================== -->
+<h2>ÍNDICE</h2>
+<ul>
+    <li><a href="#intro">1. INTRODUCCIÓN</a></li>
+    <li><a href="#requisitos">2. REQUISITOS DEL SISTEMA</a></li>
+    <li><a href="#acceso">3. ACCESO Y AUTENTICACIÓN</a></li>
+    <li><a href="#dashboard">4. PANEL DE CONTROL (DASHBOARD)</a></li>
+    <li><a href="#gestion">5. GESTIÓN DE EMPLEADOS Y PRÉSTAMOS</a></li>
+    <li><a href="#abonos">6. PROCESAMIENTO DE ABONOS</a></li>
+    <li><a href="#reportes">7. REPORTES</a></li>
+    <li><a href="#resumen">8. RESUMEN POR EMPRESA</a></li>
+    <li><a href="#arqueos">9. ARQUEOS DE CAJA</a></li>
+    <li><a href="#sesiones">10. CONTROL DE SESIONES ACTIVAS</a></li>
+    <li><a href="#usuarios">11. GESTIÓN DE USUARIOS</a></li>
+    <li><a href="#importacion">12. IMPORTACIÓN MASIVA</a></li>
+    <li><a href="#sincronizar">13. SINCRONIZACIÓN DE EMPLEADOS</a></li>
+    <li><a href="#traspaso">14. TRASPASO ANUAL</a></li>
+    <li><a href="#fondos">15. CONFIGURACIÓN DE FONDOS</a></li>
+    <li><a href="#manual">16. MANUAL DE AYUDA</a></li>
+    <li><a href="#glosario">17. GLOSARIO DE TÉRMINOS</a></li>
+    <li><a href="#soporte">18. SOPORTE TÉCNICO</a></li>
+    <li><a href="#anexos">19. ANEXOS</a></li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 1. INTRODUCCIÓN -->
+<!-- ================================================== -->
+<h2 id="intro">1. INTRODUCCIÓN</h2>
+
+<h3>1.1 Propósito del Sistema</h3>
+<p>El <strong>Sistema de Préstamos "El Cardenal"</strong> es una aplicación web diseñada para gestionar de manera integral los préstamos otorgados a los empleados de las diferentes sucursales de la empresa. El sistema permite:</p>
+<ul>
+    <li>Registrar nuevos préstamos.</li>
+    <li>Procesar abonos (pagos) semanales.</li>
+    <li>Generar reportes detallados (Kardex, Historial, Auditoría).</li>
+    <li>Realizar arqueos de caja.</li>
+    <li>Administrar usuarios y sesiones.</li>
+    <li>Sincronizar datos con archivos Excel.</li>
+    <li>Realizar traspasos anuales.</li>
+</ul>
+
+<h3>1.2 Público Objetivo</h3>
+<ul>
+    <li><strong>Administradores (SISTEMAS):</strong> Tienen acceso completo a todas las funcionalidades del sistema.</li>
+    <li><strong>Usuarios de Sucursal:</strong> Operan en su sucursal asignada, gestionando préstamos y procesando abonos de su personal.</li>
+</ul>
+
+<h3>1.3 Estructura del Sistema</h3>
+<p>El sistema está compuesto por un <strong>Panel de Control</strong> que actúa como centro de operaciones, desde donde se accede a todas las demás funciones a través de un menú lateral.</p>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 2. REQUISITOS -->
+<!-- ================================================== -->
+<h2 id="requisitos">2. REQUISITOS DEL SISTEMA</h2>
+
+<h3>2.1 Requisitos de Hardware</h3>
+<ul>
+    <li>Servidor con al menos 2 GB de RAM.</li>
+    <li>Espacio en disco mínimo de 500 MB.</li>
+    <li>Conexión a Internet estable.</li>
+</ul>
+
+<h3>2.2 Requisitos de Software</h3>
+<ul>
+    <li><strong>Navegadores Web:</strong> Chrome (recomendado), Firefox, Edge, Safari.</li>
+    <li><strong>Resolución de pantalla:</strong> 1366 x 768 o superior.</li>
+    <li><strong>Python 3.14+</strong> (para servidor).</li>
+    <li><strong>SQLite 3</strong> como base de datos.</li>
+</ul>
+
+<h3>2.3 Acceso al Sistema</h3>
+<p>El sistema se accede a través de un navegador web utilizando la siguiente URL:</p>
+<div class="code-block">http://[dirección-ip-del-servidor]:5034</div>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 3. ACCESO -->
+<!-- ================================================== -->
+<h2 id="acceso">3. ACCESO Y AUTENTICACIÓN</h2>
+
+<h3>3.1 Pantalla de Login</h3>
+<p>La pantalla de inicio de sesión requiere las siguientes credenciales:</p>
+<ul>
+    <li><strong>Usuario:</strong> Nombre de usuario asignado.</li>
+    <li><strong>Contraseña:</strong> Clave de acceso.</li>
+</ul>
+
+<h3>3.2 Tipos de Usuarios</h3>
+<table>
+    <thead><tr><th>Tipo de Usuario</th><th>Descripción</th><th>Permisos</th></tr></thead>
+    <tbody>
+        <tr><td><strong>SISTEMAS</strong></td><td>Administrador global</td><td>Acceso completo a todas las funciones y sucursales.</td></tr>
+        <tr><td><strong>SUCURSAL</strong></td><td>Usuario de sucursal</td><td>Acceso solo a su sucursal asignada.</td></tr>
+    </tbody>
+</table>
+
+<h3>3.3 Recuperación de Contraseña</h3>
+<p>En caso de olvido de contraseña, contactar al administrador del sistema (SISTEMAS).</p>
+
+<h3>3.4 Cierre de Sesión</h3>
+<p>Para cerrar sesión, hacer clic en el botón <strong>"Salir"</strong> ubicado en el menú lateral inferior.</p>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 4. DASHBOARD -->
+<!-- ================================================== -->
+<h2 id="dashboard">4. PANEL DE CONTROL (DASHBOARD)</h2>
+
+<h3>4.1 Descripción General</h3>
+<p>El Panel de Control es la pantalla principal del sistema, donde se visualizan los indicadores clave de rendimiento (KPIs) y se realiza la gestión diaria de préstamos.</p>
+
+<h3>4.2 Menú Lateral</h3>
+<table>
+    <thead><tr><th>Opción</th><th>Descripción</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Dashboard</strong></td><td>Panel de Control principal.</td></tr>
+        <tr><td><strong>Reportes</strong></td><td>Centro de reportes y consultas.</td></tr>
+        <tr><td><strong>Gráficas</strong></td><td>Visualización gráfica de rendimiento por sede.</td></tr>
+        <tr><td><strong>Resumen por Empresa</strong></td><td>Estado financiero detallado por sucursal.</td></tr>
+        <tr><td><strong>Manual de Ayuda</strong></td><td>Abre el manual del sistema (PDF).</td></tr>
+        <tr><td><strong>Usuarios</strong> (Admin)</td><td>Gestión de usuarios del sistema.</td></tr>
+        <tr><td><strong>Sesiones Activas</strong> (Admin)</td><td>Monitoreo de usuarios conectados.</td></tr>
+        <tr><td><strong>Importar Masiva</strong> (Admin)</td><td>Carga masiva de préstamos desde Excel.</td></tr>
+        <tr><td><strong>Sincronizar Empleados</strong> (Admin)</td><td>Actualiza datos de empleados desde Excel.</td></tr>
+        <tr><td><strong>TRASPASO ANUAL</strong> (Admin)</td><td>Realiza el traspaso de saldos al nuevo año.</td></tr>
+        <tr><td><strong>Salir</strong></td><td>Cierra la sesión del usuario.</td></tr>
+    </tbody>
+</table>
+
+<h3>4.3 Indicadores (KPIs)</h3>
+<p>En la parte superior del Dashboard se muestran cinco (5) tarjetas con indicadores clave:</p>
+<table>
+    <thead><tr><th>Indicador</th><th>Descripción</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Fondo Inicial Asignado</strong></td><td>Monto total de fondos asignados a las cajas de las sucursales.</td></tr>
+        <tr><td><strong>Fondo Actual (En Caja)</strong></td><td>Saldo disponible en las cajas.</td></tr>
+        <tr><td><strong>Saldo Global Histórico</strong></td><td>Total de saldos pendientes de cobro.</td></tr>
+        <tr><td><strong>Recaudado Semana X</strong></td><td>Monto total abonado en la semana actual.</td></tr>
+        <tr><td><strong>Restante Semana X</strong></td><td>Monto que aún no se ha abonado en la semana actual.</td></tr>
+    </tbody>
+</table>
+
+<h3>4.4 Sección de Arqueos</h3>
+<ul>
+    <li><strong>Para Administradores:</strong> Muestra el último arqueo realizado en cada sucursal, indicando si está cuadrado o con diferencia.</li>
+    <li><strong>Para Usuarios de Sucursal:</strong> Muestra su último arqueo personal.</li>
+</ul>
+
+<h3>4.5 Panel de Control de Préstamos</h3>
+<p>Esta sección permite:</p>
+<ul>
+    <li>Seleccionar la <strong>Sede a Observar</strong> (TODAS o una sucursal específica).</li>
+    <li>Seleccionar la <strong>Semana</strong> a visualizar.</li>
+    <li>Buscar empleados por <strong>Nómina</strong> o <strong>Nombre</strong>.</li>
+    <li>Aplicar filtros: "Ocultar sin Abono" y "Solo con Adeudo".</li>
+    <li><strong>Procesar Abonos</strong> de empleados seleccionados.</li>
+    <li>Registrar un <strong>Nuevo</strong> préstamo.</li>
+</ul>
+
+<h3>4.6 Tabla de Empleados</h3>
+<p>La tabla muestra la información de todos los empleados con préstamos registrados, incluyendo:</p>
+<ul>
+    <li>ID Empleado</li>
+    <li>Nómina</li>
+    <li>Nombre del Empleado</li>
+    <li>Sucursal</li>
+    <li>Departamento</li>
+    <li>Puesto</li>
+    <li>Monto del Préstamo</li>
+    <li>Fecha Ingreso</li>
+    <li>Fecha Alta Préstamo</li>
+    <li>Semana Otorgado</li>
+    <li>Última Semana de Abono</li>
+    <li>Abono de la Semana</li>
+    <li>Saldo Pendiente</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 5. GESTIÓN DE PRÉSTAMOS -->
+<!-- ================================================== -->
+<h2 id="gestion">5. GESTIÓN DE EMPLEADOS Y PRÉSTAMOS</h2>
+
+<h3>5.1 Registrar Nuevo Préstamo</h3>
+<p><strong>Procedimiento:</strong></p>
+<ol>
+    <li>Hacer clic en el botón <strong>"NUEVO"</strong> en el Dashboard.</li>
+    <li>Completar el formulario:</li>
+</ol>
+<table>
+    <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Sucursal</strong></td><td>Seleccionar la sucursal (Admin puede elegir; Usuario ve su sucursal).</td></tr>
+        <tr><td><strong>Nómina</strong></td><td>Seleccionar de la lista desplegable (se autocompleta).</td></tr>
+        <tr><td><strong>Nombre del Empleado</strong></td><td>Se autocompleta al seleccionar la nómina.</td></tr>
+        <tr><td><strong>PUESTO</strong></td><td>Se autocompleta desde los datos del empleado.</td></tr>
+        <tr><td><strong>DEPARTAMENTO</strong></td><td>Se autocompleta desde los datos del empleado.</td></tr>
+        <tr><td><strong>ID Asignado</strong></td><td>Se genera automáticamente (Ej: CNA00252).</td></tr>
+        <tr><td><strong>Monto del Préstamo ($)</strong></td><td>Ingresar el monto del préstamo.</td></tr>
+        <tr><td><strong>Fecha Ingreso (Empleado)</strong></td><td>Se autocompleta desde los datos del empleado.</td></tr>
+        <tr><td><strong>Fecha Alta Préstamo</strong></td><td>Seleccionar la fecha de otorgamiento.</td></tr>
+        <tr><td><strong>¿Quién autoriza?</strong></td><td>Nombre de la persona que autoriza el préstamo.</td></tr>
+        <tr><td><strong>Motivo</strong></td><td>Obligatorio si el empleado ya tiene otro préstamo activo en la misma sucursal.</td></tr>
+    </tbody>
+</table>
+<ol start="3">
+    <li>Hacer clic en <strong>"GUARDAR PRÉSTAMO"</strong>.</li>
+</ol>
+
+<div class="note"><strong>Nota:</strong> El sistema validará si el empleado ya tiene un préstamo vigente en la misma sucursal. Si lo tiene, será necesario ingresar un motivo.</div>
+
+<h3>5.2 Editar Préstamo (Solo Administradores)</h3>
+<ol>
+    <li>En la tabla del Dashboard, localizar el empleado.</li>
+    <li>Hacer clic en el ícono de <strong>editar</strong> ✏️.</li>
+    <li>Modificar los campos necesarios.</li>
+    <li>Hacer clic en <strong>"GUARDAR CAMBIOS"</strong>.</li>
+</ol>
+
+<h3>5.3 Eliminar Préstamo (Solo Administradores)</h3>
+<ol>
+    <li>En la tabla del Dashboard, localizar el empleado.</li>
+    <li>Hacer clic en el ícono de <strong>eliminar</strong> 🗑️.</li>
+    <li>Confirmar la eliminación.</li>
+</ol>
+
+<div class="warning"><strong>Advertencia:</strong> Eliminar un préstamo borra también todos los movimientos (abonos) asociados. Esta acción es irreversible.</div>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 6. ABONOS -->
+<!-- ================================================== -->
+<h2 id="abonos">6. PROCESAMIENTO DE ABONOS</h2>
+
+<h3>6.1 Ingresar Abonos Manuales</h3>
+<ol>
+    <li>En el Dashboard, seleccionar la <strong>Semana de Carga</strong>.</li>
+    <li>En la columna <strong>"Abonar / Modificar"</strong>, ingresar el monto a abonar en el campo correspondiente.</li>
+    <li>Marcar la casilla de verificación del empleado.</li>
+    <li>Hacer clic en <strong>"PROCESAR ABONOS"</strong>.</li>
+    <li>Confirmar en el modal de confirmación.</li>
+    <li>Hacer clic en <strong>"Confirmar y Procesar"</strong>.</li>
+</ol>
+
+<div class="tip"><strong>Consejo:</strong> Puedes seleccionar varios empleados a la vez y procesar todos sus abonos simultáneamente.</div>
+
+<h3>6.2 Auditoría de Abonos (Solo Administradores)</h3>
+<ol>
+    <li>En la tabla del Dashboard, localizar el empleado.</li>
+    <li>Hacer clic en el ícono de <strong>auditar</strong> 🔍.</li>
+    <li>En la pantalla de auditoría, se pueden:
+        <ul>
+            <li><strong>Editar</strong> un abono (corregir monto o semana).</li>
+            <li><strong>Eliminar</strong> un abono (requiere motivo).</li>
+        </ul>
+    </li>
+    <li>Todas las acciones quedan registradas en la bitácora de auditoría.</li>
+</ol>
+
+<h3>6.3 Filtros de Búsqueda</h3>
+<ul>
+    <li><strong>Buscar:</strong> Filtra empleados por Nómina o Nombre.</li>
+    <li><strong>Ocultar sin Abono:</strong> Muestra solo empleados con abono registrado en la semana.</li>
+    <li><strong>Solo con Adeudo:</strong> Muestra solo empleados con saldo pendiente > 0.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 7. REPORTES -->
+<!-- ================================================== -->
+<h2 id="reportes">7. REPORTES</h2>
+
+<h3>7.1 Acceso al Centro de Reportes</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Reportes"</strong>.</p>
+
+<h3>7.2 Tipos de Reportes</h3>
+
+<h4>7.2.1 Reportes por Fecha</h4>
+<ol>
+    <li>Seleccionar <strong>Fecha Inicio</strong> y <strong>Fecha Fin</strong>.</li>
+    <li>Seleccionar la <strong>Sucursal</strong> (Admin puede elegir; Usuario ve su sucursal).</li>
+    <li>Elegir el tipo de reporte:
+        <ul>
+            <li><strong>SOLO ADEUDOS:</strong> Muestra empleados con saldo pendiente.</li>
+            <li><strong>MULTI-PRÉSTAMO:</strong> Muestra empleados con más de un préstamo.</li>
+        </ul>
+    </li>
+    <li>Hacer clic en el botón correspondiente.</li>
+</ol>
+
+<h4>7.2.2 Kardex Individual</h4>
+<ol>
+    <li>Seleccionar la <strong>Sede</strong>.</li>
+    <li>Seleccionar el <strong>Empleado</strong> de la lista.</li>
+    <li>Hacer clic en <strong>"VER KARDEX"</strong>.</li>
+</ol>
+<p><strong>Información que muestra el Kardex:</strong></p>
+<ul>
+    <li>Datos personales del empleado.</li>
+    <li>Lista de todos sus préstamos (desglosados por préstamo).</li>
+    <li>Por cada préstamo:
+        <ul>
+            <li>Monto Inicial.</li>
+            <li>Total Abonado.</li>
+            <li>Saldo Pendiente.</li>
+            <li>Historial de movimientos (cargo inicial y abonos).</li>
+        </ul>
+    </li>
+    <li>Resumen global de todos los préstamos.</li>
+</ul>
+
+<div class="note"><strong>Nota:</strong> Si el empleado tiene préstamos en diferentes sucursales, el Kardex solo mostrará los de la sucursal seleccionada para usuarios no administradores. Los administradores pueden ver todos, pero el sistema mostrará la sucursal de cada préstamo.</div>
+
+<h4>7.2.3 Kardex por Semana</h4>
+<ol>
+    <li>Ingresar el número de <strong>Semana</strong>.</li>
+    <li>Seleccionar la <strong>Sucursal</strong>.</li>
+    <li>Hacer clic en <strong>"GENERAR LISTADO"</strong>.</li>
+</ol>
+
+<h4>7.2.4 Historial Global</h4>
+<ol>
+    <li>Seleccionar la <strong>Sucursal</strong>.</li>
+    <li>Hacer clic en <strong>"GENERAR REPORTE GLOBAL"</strong>.</li>
+</ol>
+<p><strong>Información que muestra:</strong> Resumen de préstamos otorgados, recuperados y saldos.</p>
+
+<h4>7.2.5 Reporte de Arqueos</h4>
+<ol>
+    <li>Seleccionar la <strong>Sucursal</strong>.</li>
+    <li>Hacer clic en <strong>"GENERAR"</strong> (Admin) o <strong>"VER MIS ARQUEOS"</strong> (Usuario).</li>
+</ol>
+<p><strong>Información que muestra:</strong> Historial de arqueos realizados con fecha, hora, semana, saldo sistema, efectivo contado, diferencia y estatus.</p>
+
+<h4>7.2.6 Bitácora de Auditoría (Solo Administradores)</h4>
+<p><strong>Acceso:</strong> Hacer clic en <strong>"VER BITÁCORA"</strong> en el Centro de Reportes.</p>
+<p><strong>Información que muestra:</strong> Registro de modificaciones y eliminaciones de abonos con fecha, usuario, acción, empleado afectado, detalle y motivo.</p>
+
+<h3>7.3 Exportación de Reportes</h3>
+<p>Todos los reportes pueden exportarse en:</p>
+<ul>
+    <li><strong>PDF</strong> (imprimir).</li>
+    <li><strong>Excel</strong> (archivo .xls o .xlsx) con formato profesional.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 8. RESUMEN POR EMPRESA -->
+<!-- ================================================== -->
+<h2 id="resumen">8. RESUMEN POR EMPRESA</h2>
+
+<h3>8.1 Acceso</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Resumen por Empresa"</strong>.</p>
+
+<h3>8.2 Visualización por Sucursal</h3>
+<ul>
+    <li><strong>Administradores:</strong> Pueden seleccionar cualquier sucursal desde el selector.</li>
+    <li><strong>Usuarios de Sucursal:</strong> Solo ven su sucursal asignada (campo de solo lectura).</li>
+</ul>
+
+<h3>8.3 Indicadores Financieros</h3>
+<table>
+    <thead><tr><th>Indicador</th><th>Descripción</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Fondo Inicial</strong></td><td>Monto asignado a la sucursal.</td></tr>
+        <tr><td><strong>Total Prestado (Activo)</strong></td><td>Suma de préstamos vigentes.</td></tr>
+        <tr><td><strong>Total Recaudado (Activo)</strong></td><td>Monto recuperado de los préstamos activos.</td></tr>
+        <tr><td><strong>Adeudo Actual</strong></td><td>Saldo pendiente de cobrar.</td></tr>
+        <tr><td><strong>Último Arqueo</strong></td><td>Fecha, diferencia y estatus del último arqueo.</td></tr>
+    </tbody>
+</table>
+
+<h3>8.4 Tabla de Empleados con Préstamo Vigente</h3>
+<p>Muestra:</p>
+<ul>
+    <li>ID Empleado</li>
+    <li>Nómina</li>
+    <li>Empleado</li>
+    <li>Departamento</li>
+    <li>Puesto</li>
+    <li>Préstamo Inicial</li>
+    <li>Recuperado</li>
+    <li>Saldo Pendiente</li>
+    <li>Acciones (Kardex individual, Auditar abonos)</li>
+</ul>
+
+<h3>8.5 Exportación</h3>
+<p>Se puede exportar el resumen en:</p>
+<ul>
+    <li><strong>PDF</strong> (Imprimir).</li>
+    <li><strong>Excel</strong> (archivo .xls con formato profesional).</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 9. ARQUEOS -->
+<!-- ================================================== -->
+<h2 id="arqueos">9. ARQUEOS DE CAJA</h2>
+
+<h3>9.1 ¿Qué es un Arqueo de Caja?</h3>
+<p>Es el proceso de verificación del efectivo físico contra el saldo registrado en el sistema.</p>
+
+<h3>9.2 ¿Cuándo se debe realizar un Arqueo?</h3>
+<ul>
+    <li><strong>Obligatorio semanalmente</strong> (el sistema lo exige al inicio de cada semana).</li>
+    <li><strong>Voluntario:</strong> El administrador puede realizar arqueos adicionales desde "Resumen por Empresa".</li>
+</ul>
+
+<h3>9.3 Realizar un Arqueo</h3>
+<ol>
+    <li>El sistema mostrará una alerta roja si el arqueo semanal está pendiente.</li>
+    <li>Hacer clic en <strong>"REALIZAR ARQUEO AHORA"</strong>.</li>
+    <li>En el modal, verificar el <strong>Fondo Teórico en Sistema</strong> (saldo esperado).</li>
+    <li>Ingresar el desglose de billetes y monedas:
+        <ul>
+            <li>Cantidad de billetes de $1,000, $500, $200, $100, $50, $20.</li>
+            <li>Monto total en monedas.</li>
+        </ul>
+    </li>
+    <li>El sistema calculará automáticamente:
+        <ul>
+            <li><strong>Total Físico</strong> (suma de todas las denominaciones).</li>
+            <li><strong>Diferencia</strong> (Total Físico - Fondo Teórico).</li>
+        </ul>
+    </li>
+    <li>Agregar <strong>Observaciones</strong> si es necesario.</li>
+    <li>Hacer clic en <strong>"GUARDAR ARQUEO DEFINITIVO"</strong>.</li>
+</ol>
+
+<h3>9.4 Historial de Arqueos</h3>
+<p><strong>Acceso:</strong> Desde "Resumen por Empresa" > "Historial Arqueos".</p>
+<p><strong>Funcionalidades (Solo Administradores):</strong></p>
+<ul>
+    <li><strong>Ver Detalle:</strong> Muestra el desglose de billetes y monedas (👁️).</li>
+    <li><strong>Exportar Kardex Individual:</strong> Descarga un Excel profesional (📊).</li>
+    <li><strong>Exportar Múltiple:</strong> Seleccionar varios arqueos con casillas de verificación y hacer clic en "Exportar Seleccionados".</li>
+    <li><strong>Editar Arqueo:</strong> Corregir el total y/o el desglose de billetes (✏️).</li>
+    <li><strong>Eliminar Arqueo:</strong> Eliminar un arqueo erróneo (🗑️).</li>
+</ul>
+
+<h3>9.5 Exportación de Arqueos</h3>
+<p>Los arqueos se exportan en Excel con formato profesional incluyendo:</p>
+<ul>
+    <li>Título del reporte.</li>
+    <li>Nombre de la empresa.</li>
+    <li>Fecha de emisión.</li>
+    <li>Tabla con: ID, Fecha, Semana, Sucursal, Fondo Sistema, Efectivo Físico, Diferencia, Usuario, Observaciones, Billetes $1000, $500, $200, $100, $50, $20, Monedas/Otros.</li>
+    <li>Encabezados con fondo oscuro, filas alternadas, formato de moneda y bordes finos.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 10. SESIONES -->
+<!-- ================================================== -->
+<h2 id="sesiones">10. CONTROL DE SESIONES ACTIVAS</h2>
+
+<h3>10.1 Acceso (Solo Administradores)</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Sesiones Activas"</strong>.</p>
+
+<h3>10.2 Visualización</h3>
+<p>Muestra una tarjeta por cada usuario conectado con:</p>
+<ul>
+    <li>Nombre del usuario.</li>
+    <li>Sucursal.</li>
+    <li>Última actividad (fecha y hora).</li>
+    <li>Indicador "EN LÍNEA" o "TÚ (ADMINISTRADOR)".</li>
+</ul>
+
+<h3>10.3 Expulsar Usuario</h3>
+<ol>
+    <li>Localizar al usuario que se desea expulsar.</li>
+    <li>Hacer clic en <strong>"EXPULSAR DEL SISTEMA"</strong>.</li>
+    <li>Confirmar la acción.</li>
+    <li>El usuario será desconectado inmediatamente y redirigido a la pantalla de login.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 11. USUARIOS -->
+<!-- ================================================== -->
+<h2 id="usuarios">11. GESTIÓN DE USUARIOS</h2>
+
+<h3>11.1 Acceso (Solo Administradores)</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Usuarios"</strong>.</p>
+
+<h3>11.2 Crear Usuario</h3>
+<ol>
+    <li>Completar los campos:
+        <ul>
+            <li><strong>Usuario:</strong> Nombre de usuario único.</li>
+            <li><strong>Contraseña:</strong> Clave de acceso.</li>
+            <li><strong>Sucursal:</strong> Sucursal a la que pertenece.</li>
+        </ul>
+    </li>
+    <li>Hacer clic en <strong>"CREAR"</strong>.</li>
+</ol>
+
+<h3>11.3 Editar Usuario</h3>
+<ol>
+    <li>Localizar el usuario en la tabla.</li>
+    <li>Hacer clic en <strong>"Editar"</strong>.</li>
+    <li>Modificar los campos necesarios (Usuario, Contraseña, Sucursal).</li>
+    <li>Hacer clic en <strong>"GUARDAR"</strong>.</li>
+</ol>
+
+<h3>11.4 Eliminar Usuario</h3>
+<ol>
+    <li>Localizar el usuario en la tabla.</li>
+    <li>Hacer clic en <strong>"Borrar"</strong>.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 12. IMPORTACIÓN -->
+<!-- ================================================== -->
+<h2 id="importacion">12. IMPORTACIÓN MASIVA</h2>
+
+<h3>12.1 Acceso (Solo Administradores)</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Importar Masiva"</strong>.</p>
+
+<h3>12.2 Procedimiento de Importación</h3>
+<ol>
+    <li>Seleccionar el <strong>archivo Excel</strong> (.xlsx o .xls) con los datos de los préstamos.</li>
+    <li>Seleccionar la <strong>Sucursal</strong> destino.</li>
+    <li>Hacer clic en <strong>"CARGAR"</strong>.</li>
+</ol>
+
+<h3>12.3 Formato del Archivo Excel</h3>
+<p>El archivo debe contener las siguientes columnas:</p>
+<table>
+    <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+    <tbody>
+        <tr><td><strong>N.NO</strong> o <strong>NOMINA</strong></td><td>Número de nómina del empleado.</td></tr>
+        <tr><td><strong>NOMBRE</strong> o <strong>EMPLEADO</strong></td><td>Nombre completo del empleado.</td></tr>
+        <tr><td><strong>AREA</strong></td><td>Departamento al que pertenece.</td></tr>
+        <tr><td><strong>MONTO</strong> o <strong>PRESTAMO</strong></td><td>Monto del préstamo (sin símbolos).</td></tr>
+        <tr><td><strong>FECHA</strong></td><td>Fecha de otorgamiento (formato DD/MM/AAAA).</td></tr>
+        <tr><td><strong>SEM</strong> o <strong>SEMANA</strong></td><td>Semana en que fue otorgado.</td></tr>
+        <tr><td><strong>F.ALTA</strong></td><td>Fecha de ingreso del empleado (formato DD/MM/AAAA).</td></tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 13. SINCRONIZACIÓN -->
+<!-- ================================================== -->
+<h2 id="sincronizar">13. SINCRONIZACIÓN DE EMPLEADOS</h2>
+
+<h3>13.1 Acceso (Solo Administradores)</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Sincronizar Empleados"</strong>.</p>
+
+<h3>13.2 ¿Qué hace la Sincronización?</h3>
+<p>Actualiza los datos de <strong>DEPARTAMENTO</strong>, <strong>PUESTO</strong> y <strong>Fecha Ingreso</strong> de todos los préstamos existentes, según la información contenida en los archivos Excel de cada sucursal.</p>
+
+<h3>13.3 Procedimiento</h3>
+<ol>
+    <li>Seleccionar la <strong>sucursal</strong> a sincronizar (o "TODAS LAS SEDES").</li>
+    <li>Hacer clic en <strong>"Sincronizar Ahora"</strong>.</li>
+</ol>
+
+<h3>13.4 Ubicación de Archivos</h3>
+<p>Los archivos Excel deben estar en la carpeta <code>empleados</code> del servidor, con nombres que comiencen con el nombre de la sucursal (ej: "DEPARTAMENTO BOMBILLA.xlsx").</p>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 14. TRASPASO -->
+<!-- ================================================== -->
+<h2 id="traspaso">14. TRASPASO ANUAL</h2>
+
+<h3>14.1 Acceso (Solo Administradores)</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"TRASPASO ANUAL"</strong>.</p>
+
+<h3>14.2 ¿Qué hace el Traspaso Anual?</h3>
+<ul>
+    <li>Toma todos los préstamos con saldo pendiente y los traslada al nuevo año.</li>
+    <li>Crea nuevos préstamos con el saldo pendiente como monto inicial.</li>
+    <li>Salda (pone a cero) los préstamos originales.</li>
+</ul>
+
+<h3>14.3 Procedimiento</h3>
+<ol>
+    <li>Ingresar el <strong>Nuevo Año</strong> en el campo (generalmente el año siguiente).</li>
+    <li>Hacer clic en <strong>"INICIAR TRASPASO"</strong>.</li>
+</ol>
+
+<h3>14.4 Ejemplo</h3>
+<p>Si un empleado tiene un saldo pendiente de $5,000.00 al 31 de diciembre de 2026:</p>
+<ul>
+    <li>Se crea un nuevo préstamo en el año 2027 con monto inicial de $5,000.00.</li>
+    <li>El préstamo original queda con saldo $0.00.</li>
+</ul>
+
+<div class="warning"><strong>Advertencia:</strong> Esta acción es irreversible. Asegúrate de que todos los abonos de la semana estén procesados antes de ejecutar el traspaso.</div>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 15. FONDOS -->
+<!-- ================================================== -->
+<h2 id="fondos">15. CONFIGURACIÓN DE FONDOS</h2>
+
+<h3>15.1 Acceso (Solo Administradores)</h3>
+<p>Desde el Dashboard, en la sección "Fondos Iniciales", hacer clic en <strong>"Fondo Inicial"</strong>.</p>
+
+<h3>15.2 Procedimiento</h3>
+<ol>
+    <li>Seleccionar la <strong>Sucursal</strong>.</li>
+    <li>Ingresar el <strong>Monto Inicial</strong>.</li>
+    <li>Hacer clic en <strong>"ESTABLECER"</strong>.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 16. MANUAL -->
+<!-- ================================================== -->
+<h2 id="manual">16. MANUAL DE AYUDA</h2>
+
+<h3>16.1 Acceso</h3>
+<p>Desde el menú lateral, hacer clic en <strong>"Manual de Ayuda"</strong>.</p>
+
+<h3>16.2 Visualización</h3>
+<p>Se abre el manual completo del sistema en formato PDF (este mismo documento).</p>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 17. GLOSARIO -->
+<!-- ================================================== -->
+<h2 id="glosario">17. GLOSARIO DE TÉRMINOS</h2>
+
+<table>
+    <thead><tr><th>Término</th><th>Definición</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Abono</strong></td><td>Pago o amortización de una parte del préstamo.</td></tr>
+        <tr><td><strong>Arqueo de Caja</strong></td><td>Proceso de verificar el efectivo físico contra el saldo del sistema.</td></tr>
+        <tr><td><strong>Cargo Inicial</strong></td><td>Registro del desembolso del préstamo en el Kardex.</td></tr>
+        <tr><td><strong>Diferencia</strong></td><td>Resultado de comparar el efectivo físico con el saldo del sistema.</td></tr>
+        <tr><td><strong>Fondo Inicial</strong></td><td>Monto asignado a una caja de sucursal para iniciar operaciones.</td></tr>
+        <tr><td><strong>Kardex</strong></td><td>Historial detallado de movimientos de un préstamo.</td></tr>
+        <tr><td><strong>Nómina</strong></td><td>Número de identificación del empleado.</td></tr>
+        <tr><td><strong>Sucursal</strong></td><td>Cada una de las sedes de la empresa (TACUBA, BOMBILLA, RESTORANES, NAPOLES, BRIGAR, BGARI).</td></tr>
+        <tr><td><strong>Traspaso Anual</strong></td><td>Proceso de trasladar saldos pendientes al nuevo año fiscal.</td></tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 18. SOPORTE -->
+<!-- ================================================== -->
+<h2 id="soporte">18. SOPORTE TÉCNICO</h2>
+
+<h3>18.1 Contacto</h3>
+<ul>
+    <li><strong>Administrador del Sistema:</strong> SISTEMAS</li>
+    <li><strong>Correo Electrónico:</strong> sistemas@elcardenal.com</li>
+    <li><strong>Teléfono:</strong> (55) 1234-5678</li>
+</ul>
+
+<h3>18.2 Reporte de Incidentes</h3>
+<p>Para reportar problemas o sugerencias, utilizar la sección de <strong>Auditoría de Sistemas</strong> (accesible desde Reportes para administradores).</p>
+
+<div class="page-break"></div>
+
+<!-- ================================================== -->
+<!-- 19. ANEXOS -->
+<!-- ================================================== -->
+<h2 id="anexos">19. ANEXOS</h2>
+
+<h3>19.1 Atajos de Teclado</h3>
+<table>
+    <thead><tr><th>Tecla</th><th>Acción</th></tr></thead>
+    <tbody>
+        <tr><td><code>Ctrl + B</code></td><td>Buscar empleado en Dashboard.</td></tr>
+        <tr><td><code>Ctrl + N</code></td><td>Abrir modal de nuevo préstamo.</td></tr>
+        <tr><td><code>Ctrl + P</code></td><td>Imprimir reporte actual.</td></tr>
+    </tbody>
+</table>
+
+<h3>19.2 Iconos de Acción</h3>
+<table>
+    <thead><tr><th>Icono</th><th>Acción</th></tr></thead>
+    <tbody>
+        <tr><td>✏️</td><td>Editar préstamo (Admin).</td></tr>
+        <tr><td>🔍</td><td>Auditar abonos.</td></tr>
+        <tr><td>🗑️</td><td>Eliminar préstamo (Admin).</td></tr>
+        <tr><td>👁️</td><td>Ver detalle de arqueo.</td></tr>
+        <tr><td>📊</td><td>Exportar Kardex a Excel.</td></tr>
+        <tr><td>🖨️</td><td>Imprimir.</td></tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <p><strong>© 2026 El Cardenal - Sistema de Préstamos.</strong> Todos los derechos reservados.</p>
+    <p>Versión 1.0 – Julio 2026</p>
+</div>
+
+</body>
+</html>

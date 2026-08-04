@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Usuario de Sucursal - El Cardenal</title>
+    <style>
+        /* ========== RESET Y ESTILOS GENERALES ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            background: #e9ecef;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        /* Contenedor principal simula papel */
+        .document-wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 50px 65px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border-radius: 6px;
+        }
+
+        /* ========== ENCABEZADO Y PIE DE PÁGINA ========== */
+        .header-doc {
+            border-bottom: 3px solid #1B7A3D;
+            padding-bottom: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header-doc .empresa {
+            font-size: 14px;
+            color: #1B7A3D;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .header-doc .titulo-doc {
+            font-size: 13px;
+            color: #555;
+            font-weight: 400;
+        }
+        .header-doc .version {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .footer-doc {
+            margin-top: 45px;
+            border-top: 2px solid #1B7A3D;
+            padding-top: 18px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #777;
+        }
+
+        /* ========== TIPOGRAFÍA ========== */
+        h1 {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 34px;
+            color: #1a1d20;
+            border-bottom: 4px solid #1B7A3D;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            letter-spacing: 0.5px;
+        }
+        h2 {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 24px;
+            color: #2C3E50;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-left: 6px solid #1B7A3D;
+            padding-left: 18px;
+            font-weight: 700;
+        }
+        h3 {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 19px;
+            color: #2C3E50;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        h4 {
+            font-size: 16px;
+            color: #2C3E50;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+            color: #333;
+        }
+
+        /* ========== LISTAS ========== */
+        ul, ol {
+            margin-left: 28px;
+            margin-bottom: 14px;
+        }
+        li {
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        /* ========== TABLAS ========== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 14px;
+        }
+        th {
+            background-color: #2C3E50;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 10px 14px;
+            text-align: left;
+            border: 1px solid #2C3E50;
+        }
+        td {
+            border: 1px solid #dde1e5;
+            padding: 9px 14px;
+            vertical-align: top;
+            background-color: #ffffff;
+        }
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+
+        /* ========== RECUADROS ========== */
+        .note-box {
+            padding: 14px 20px;
+            margin: 16px 0;
+            border-radius: 4px;
+            border-left: 6px solid;
+            background: #f8f9fa;
+        }
+        .note-box.info {
+            border-left-color: #17a2b8;
+            background: #eaf6f9;
+        }
+        .note-box.warning {
+            border-left-color: #dc3545;
+            background: #fde8ea;
+        }
+        .note-box.tip {
+            border-left-color: #28a745;
+            background: #e6f4ea;
+        }
+        .note-box strong {
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        /* ========== CÓDIGO ========== */
+        .code-block {
+            background: #f4f5f7;
+            border: 1px solid #dde1e5;
+            border-radius: 4px;
+            padding: 12px 18px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            margin: 12px 0;
+            overflow-x: auto;
+            color: #1a1d20;
+        }
+
+        /* ========== PORTADA ========== */
+        .portada {
+            text-align: center;
+            padding: 60px 20px 50px;
+            border-bottom: 2px solid #1B7A3D;
+            margin-bottom: 40px;
+        }
+        .portada .logo-texto {
+            font-family: 'Georgia', serif;
+            font-size: 52px;
+            font-weight: 700;
+            color: #1B7A3D;
+            letter-spacing: 3px;
+        }
+        .portada .subtitulo {
+            font-size: 26px;
+            color: #2C3E50;
+            margin-top: 10px;
+            font-weight: 300;
+        }
+        .portada .linea-decorativa {
+            width: 120px;
+            height: 3px;
+            background: #1B7A3D;
+            margin: 20px auto;
+        }
+        .portada .info-version {
+            font-size: 15px;
+            color: #666;
+            margin-top: 15px;
+        }
+        .portada .badge-usuario {
+            display: inline-block;
+            background: #1B7A3D;
+            color: #fff;
+            padding: 6px 28px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-top: 18px;
+        }
+
+        /* ========== INDICE ========== */
+        .indice {
+            background: #f8fafc;
+            padding: 22px 30px;
+            border-radius: 6px;
+            margin-bottom: 35px;
+            border: 1px solid #e9ecef;
+        }
+        .indice ul {
+            list-style: none;
+            margin-left: 0;
+            columns: 2;
+            column-gap: 40px;
+        }
+        .indice ul li {
+            padding: 4px 0;
+            border-bottom: 1px dotted #e9ecef;
+        }
+        .indice ul li a {
+            color: #1B7A3D;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .indice ul li a:hover {
+            text-decoration: underline;
+        }
+
+        /* ========== MISCELÁNEOS ========== */
+        .page-break {
+            page-break-after: always;
+            border-bottom: 1px dashed #ccc;
+            margin: 40px 0;
+        }
+        .icono {
+            font-size: 18px;
+            margin-right: 4px;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            body { padding: 15px; }
+            .document-wrapper { padding: 25px 20px; }
+            .indice ul { columns: 1; }
+            .portada .logo-texto { font-size: 36px; }
+            .header-doc { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .footer-doc { flex-direction: column; text-align: center; gap: 6px; }
+        }
+
+        /* ========== ESTILOS PARA IMPRESIÓN / PDF ========== */
+        @media print {
+            body { background: #fff; padding: 0; }
+            .document-wrapper {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 40px 50px;
+                max-width: 100%;
+            }
+            .page-break {
+                border-bottom: none;
+                page-break-after: always;
+                margin: 30px 0;
+            }
+            .indice ul { columns: 2; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="document-wrapper">
+
+    <!-- ============================================================ -->
+    <!-- PORTADA -->
+    <!-- ============================================================ -->
+    <div class="portada">
+        <div class="logo-texto">EL CARDENAL</div>
+        <div class="subtitulo">Sistema de Préstamos</div>
+        <div class="linea-decorativa"></div>
+        <h1 style="border-bottom: none; font-size: 38px; margin-bottom: 8px;">MANUAL DEL USUARIO</h1>
+        <div class="badge-usuario">🔹 USUARIO DE SUCURSAL 🔹</div>
+        <div class="info-version">Versión 1.0 &nbsp;|&nbsp; Julio 2026</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ÍNDICE -->
+    <!-- ============================================================ -->
+    <div class="indice">
+        <h2 style="border-left: none; padding-left: 0; margin-top: 0; font-size: 20px; color: #1B7A3D;">CONTENIDO</h2>
+        <ul>
+            <li><a href="#intro">1. INTRODUCCIÓN</a></li>
+            <li><a href="#acceso">2. ACCESO AL SISTEMA</a></li>
+            <li><a href="#dashboard">3. PANEL DE CONTROL</a></li>
+            <li><a href="#gestion">4. GESTIÓN DE PRÉSTAMOS</a></li>
+            <li><a href="#abonos">5. PROCESAMIENTO DE ABONOS</a></li>
+            <li><a href="#reportes">6. REPORTES DISPONIBLES</a></li>
+            <li><a href="#resumen">7. RESUMEN DE MI EMPRESA</a></li>
+            <li><a href="#arqueos">8. ARQUEOS DE CAJA</a></li>
+            <li><a href="#manual">9. MANUAL DE AYUDA</a></li>
+            <li><a href="#salir">10. CIERRE DE SESIÓN</a></li>
+            <li><a href="#glosario">11. GLOSARIO DE TÉRMINOS</a></li>
+            <li><a href="#soporte">12. SOPORTE TÉCNICO</a></li>
+        </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 1. INTRODUCCIÓN -->
+    <!-- ============================================================ -->
+    <h2 id="intro">1. INTRODUCCIÓN</h2>
+
+    <h3>1.1 Propósito del Sistema</h3>
+    <p>El <strong>Sistema de Préstamos "El Cardenal"</strong> es una herramienta diseñada para que los encargados de sucursal puedan gestionar los préstamos otorgados a los empleados de su propia sede. Con este sistema usted podrá:</p>
+    <ul>
+        <li>Registrar nuevos préstamos para empleados de su sucursal.</li>
+        <li>Procesar los abonos (pagos) semanales.</li>
+        <li>Consultar reportes y el historial de cada empleado.</li>
+        <li>Realizar el arqueo de caja obligatorio cada semana.</li>
+        <li>Visualizar el estado financiero de su sucursal.</li>
+    </ul>
+
+    <h3>1.2 Público Objetivo</h3>
+    <p>Este manual está dirigido a <strong>usuarios de sucursal</strong>, es decir, personal autorizado que opera exclusivamente en una sede específica (TACUBA, BOMBILLA, RESTORANES, NAPOLES, BRIGAR o BGARI).</p>
+
+    <h3>1.3 Alcance del Manual</h3>
+    <p>Se describen todas las funciones a las que usted tiene acceso. Las opciones reservadas para el administrador (como gestión de usuarios, importaciones masivas o traspasos anuales) no aparecen en este documento ni en su interfaz.</p>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 2. ACCESO -->
+    <!-- ============================================================ -->
+    <h2 id="acceso">2. ACCESO AL SISTEMA</h2>
+
+    <h3>2.1 Dirección de Acceso</h3>
+    <p>Abra su navegador web (Chrome, Edge o Firefox) y escriba la siguiente dirección:</p>
+    <div class="code-block">http://[dirección-ip-del-servidor]:5034</div>
+    <p><strong>Nota:</strong> La dirección IP será proporcionada por el área de sistemas.</p>
+
+    <h3>2.2 Pantalla de Inicio de Sesión</h3>
+    <table>
+        <thead><tr><th>Campo</th><th>Instrucción</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Usuario</strong></td><td>Escriba su nombre de usuario asignado.</td></tr>
+            <tr><td><strong>Contraseña</strong></td><td>Escriba su clave de acceso.</td></tr>
+        </tbody>
+    </table>
+    <p>Haga clic en el botón <strong>"Iniciar Sesión"</strong>.</p>
+
+    <h3>2.3 Sucursal Asignada</h3>
+    <p>Una vez autenticado, el sistema reconocerá automáticamente su sucursal. <strong>Usted solo podrá ver y operar sobre los datos de su propia sede.</strong></p>
+
+    <h3>2.4 Cierre de Sesión</h3>
+    <p>Para salir del sistema, haga clic en el botón <strong>"Salir"</strong> que se encuentra en la parte inferior del menú lateral.</p>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 3. DASHBOARD -->
+    <!-- ============================================================ -->
+    <h2 id="dashboard">3. PANEL DE CONTROL (DASHBOARD)</h2>
+
+    <h3>3.1 Descripción General</h3>
+    <p>El <strong>Panel de Control</strong> es la pantalla principal. Desde aquí puede monitorear los indicadores clave y realizar las operaciones diarias.</p>
+
+    <h3>3.2 Menú Lateral</h3>
+    <p>El menú lateral contiene las siguientes opciones:</p>
+    <table>
+        <thead><tr><th>Opción</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Dashboard</strong></td><td>Pantalla principal (panel de control).</td></tr>
+            <tr><td><strong>Reportes</strong></td><td>Acceso a los reportes de su sucursal.</td></tr>
+            <tr><td><strong>Gráficas</strong></td><td>Visualización gráfica del rendimiento de su sucursal.</td></tr>
+            <tr><td><strong>Resumen por Empresa</strong></td><td>Estado financiero detallado de su sucursal.</td></tr>
+            <tr><td><strong>Manual de Ayuda</strong></td><td>Abre este documento en formato PDF.</td></tr>
+            <tr><td><strong>Salir</strong></td><td>Cierra la sesión.</td></tr>
+        </tbody>
+    </table>
+
+    <h3>3.3 Indicadores (KPIs)</h3>
+    <p>En la parte superior del Dashboard verá cinco tarjetas:</p>
+    <table>
+        <thead><tr><th>Indicador</th><th>Significado</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Fondo Inicial Asignado</strong></td><td>Monto total de fondos asignados a su sucursal.</td></tr>
+            <tr><td><strong>Fondo Actual (En Caja)</strong></td><td>Saldo disponible en la caja de su sucursal.</td></tr>
+            <tr><td><strong>Saldo Global Histórico</strong></td><td>Total de saldos pendientes de cobro en su sucursal.</td></tr>
+            <tr><td><strong>Recaudado Semana X</strong></td><td>Monto total abonado en la semana actual.</td></tr>
+            <tr><td><strong>Restante Semana X</strong></td><td>Monto que aún no se ha abonado en la semana actual.</td></tr>
+        </tbody>
+    </table>
+
+    <h3>3.4 Sección "Último Arqueo"</h3>
+    <p>Esta sección le muestra la fecha y los datos de su último arqueo de caja. Si el arqueo está pendiente, el sistema le mostrará una alerta.</p>
+
+    <h3>3.5 Panel de Control de Préstamos</h3>
+    <p>Aquí encontrará:</p>
+    <ul>
+        <li><strong>Selector de Semana:</strong> Puede cambiar la semana que desea visualizar (solo semanas iguales o posteriores a la semana real).</li>
+        <li><strong>Buscador:</strong> Permite filtrar empleados por nómina o nombre.</li>
+        <li><strong>Filtros:</strong>
+            <ul>
+                <li><em>Ocultar sin Abono:</em> Muestra solo empleados que ya tienen un abono en la semana seleccionada.</li>
+                <li><em>Solo con Adeudo:</em> Muestra solo empleados con saldo pendiente &gt; 0.</li>
+            </ul>
+        </li>
+        <li><strong>Botones:</strong>
+            <ul>
+                <li><strong>PROCESAR ABONOS:</strong> Para aplicar los pagos de la semana.</li>
+                <li><strong>NUEVO:</strong> Para registrar un nuevo préstamo.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>3.6 Tabla de Empleados</h3>
+    <p>La tabla muestra todos los empleados de su sucursal con préstamos activos. Las columnas incluyen:</p>
+    <ul>
+        <li>ID Empleado</li>
+        <li>Nómina</li>
+        <li>Nombre</li>
+        <li>Sucursal (siempre la suya)</li>
+        <li>Departamento</li>
+        <li>Puesto</li>
+        <li>Monto del préstamo</li>
+        <li>Fechas de ingreso y alta del préstamo</li>
+        <li>Semana de otorgamiento, última semana de abono y abono de la semana</li>
+        <li>Saldo pendiente</li>
+        <li>Campo para ingresar el abono de la semana</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 4. GESTIÓN DE PRÉSTAMOS -->
+    <!-- ============================================================ -->
+    <h2 id="gestion">4. GESTIÓN DE PRÉSTAMOS</h2>
+
+    <h3>4.1 Registrar un Nuevo Préstamo</h3>
+    <ol>
+        <li>En el Dashboard, haga clic en el botón <strong>"NUEVO"</strong>.</li>
+        <li>Complete el formulario:</li>
+    </ol>
+    <table>
+        <thead><tr><th>Campo</th><th>Instrucción</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Sucursal</strong></td><td>Aparecerá automáticamente su sucursal (no editable).</td></tr>
+            <tr><td><strong>Nómina</strong></td><td>Seleccione la nómina del empleado desde la lista desplegable. Al seleccionarla, se autocompletarán los campos de nombre, puesto, departamento y fecha de ingreso.</td></tr>
+            <tr><td><strong>Nombre del Empleado</strong></td><td>Se autocompleta.</td></tr>
+            <tr><td><strong>PUESTO</strong></td><td>Se autocompleta.</td></tr>
+            <tr><td><strong>DEPARTAMENTO</strong></td><td>Se autocompleta.</td></tr>
+            <tr><td><strong>ID Asignado</strong></td><td>Se generará automáticamente al guardar (ej: CNA00252).</td></tr>
+            <tr><td><strong>Monto del Préstamo ($)</strong></td><td>Ingrese el monto otorgado.</td></tr>
+            <tr><td><strong>Fecha Ingreso (Empleado)</strong></td><td>Se autocompleta.</td></tr>
+            <tr><td><strong>Fecha Alta Préstamo</strong></td><td>Seleccione la fecha de hoy (por defecto).</td></tr>
+            <tr><td><strong>¿Quién autoriza?</strong></td><td>Escriba el nombre de la persona que autoriza el préstamo.</td></tr>
+            <tr><td><strong>Motivo</strong></td><td><strong>Obligatorio</strong> si el empleado ya tiene otro préstamo activo en su misma sucursal.</td></tr>
+        </tbody>
+    </table>
+    <ol start="3">
+        <li>Haga clic en <strong>"GUARDAR PRÉSTAMO"</strong>.</li>
+    </ol>
+
+    <div class="note-box warning">
+        <strong>⚠️ Importante:</strong> El sistema no le permitirá guardar un préstamo si el empleado ya tiene un saldo pendiente en su sucursal, a menos que escriba un motivo.
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 5. ABONOS -->
+    <!-- ============================================================ -->
+    <h2 id="abonos">5. PROCESAMIENTO DE ABONOS</h2>
+
+    <h3>5.1 Ingresar Abonos Semanales</h3>
+    <ol>
+        <li>En el Dashboard, verifique que la <strong>Semana de Carga</strong> sea la correcta (puede cambiarla con el selector).</li>
+        <li>En la columna <strong>"Abonar / Modificar"</strong>, escriba el monto que desea abonar para cada empleado.</li>
+        <li>Marque la casilla de verificación (✔) al inicio de la fila de cada empleado al que le está registrando un abono.</li>
+        <li>Haga clic en el botón <strong>"PROCESAR ABONOS"</strong>.</li>
+        <li>Aparecerá una ventana de confirmación con el resumen de los empleados y montos seleccionados. Revise la información.</li>
+        <li>Haga clic en <strong>"Confirmar y Procesar"</strong>.</li>
+        <li>El sistema registrará los abonos, actualizará los saldos y ajustará el fondo de caja automáticamente.</li>
+    </ol>
+
+    <div class="note-box tip">
+        <strong>💡 Consejo:</strong> Puede seleccionar varios empleados a la vez y procesar todos sus abonos simultáneamente.
+    </div>
+
+    <h3>5.2 Recomendaciones</h3>
+    <ul>
+        <li><strong>Solo puede procesar abonos para empleados de su sucursal.</strong></li>
+        <li>Si comete un error en un monto, contacte al administrador (SISTEMAS) para que realice la corrección desde la auditoría.</li>
+        <li>Los abonos se registran en la semana que usted haya seleccionado en "Semana de Carga".</li>
+    </ul>
+
+    <h3>5.3 Filtros de Búsqueda</h3>
+    <p>Utilice los filtros para agilizar el proceso:</p>
+    <ul>
+        <li><strong>Buscar:</strong> Escriba parte del nombre o nómina para localizar rápidamente a un empleado.</li>
+        <li><strong>Ocultar sin Abono:</strong> Marque esta opción para ver solo empleados que ya tienen un abono registrado en la semana.</li>
+        <li><strong>Solo con Adeudo:</strong> Marque esta opción para ver solo empleados con saldo pendiente mayor a $0.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 6. REPORTES -->
+    <!-- ============================================================ -->
+    <h2 id="reportes">6. REPORTES DISPONIBLES</h2>
+
+    <h3>6.1 Acceso a Reportes</h3>
+    <p>Desde el menú lateral, haga clic en <strong>"Reportes"</strong>. Solo podrá generar reportes de su propia sucursal.</p>
+
+    <h4>6.2.1 Reportes por Fecha</h4>
+    <ol>
+        <li>Seleccione <strong>Fecha Inicio</strong> y <strong>Fecha Fin</strong>.</li>
+        <li>El sistema mostrará automáticamente su sucursal (no puede cambiarla).</li>
+        <li>Elija el tipo de reporte:
+            <ul>
+                <li><strong>SOLO ADEUDOS:</strong> Muestra empleados con saldo pendiente en el período.</li>
+                <li><strong>MULTI-PRÉSTAMO:</strong> Muestra empleados que tienen más de un préstamo activo.</li>
+            </ul>
+        </li>
+        <li>Haga clic en el botón correspondiente.</li>
+    </ol>
+
+    <h4>6.2.2 Kardex Individual</h4>
+    <ol>
+        <li>Seleccione un <strong>empleado</strong> de la lista.</li>
+        <li>Haga clic en <strong>"VER KARDEX"</strong>.</li>
+        <li>El Kardex muestra:
+            <ul>
+                <li>Datos personales del empleado.</li>
+                <li>Todos sus préstamos (solo los de su sucursal).</li>
+                <li>Por cada préstamo: monto inicial, total abonado, saldo pendiente y el historial de movimientos (cargo inicial y abonos).</li>
+                <li>Resumen global de todos sus préstamos.</li>
+            </ul>
+        </li>
+        <li>Puede <strong>imprimir</strong> o <strong>descargar a Excel</strong> el Kardex usando los botones en la parte superior.</li>
+    </ol>
+
+    <h4>6.2.3 Kardex por Semana</h4>
+    <ol>
+        <li>Ingrese el número de <strong>semana</strong> que desea consultar.</li>
+        <li>El sistema generará un listado de todos los movimientos (cargos y abonos) de esa semana en su sucursal.</li>
+        <li>Puede exportar el resultado a Excel.</li>
+    </ol>
+
+    <h4>6.2.4 Historial Global</h4>
+    <ol>
+        <li>Haga clic en <strong>"GENERAR REPORTE GLOBAL"</strong>.</li>
+        <li>Obtendrá un resumen de todos los préstamos activos de su sucursal, con los totales de montos iniciales, recuperados y pendientes.</li>
+        <li>Puede exportar a Excel o imprimir.</li>
+    </ol>
+
+    <h4>6.2.5 Reporte de Arqueos</h4>
+    <ol>
+        <li>Haga clic en <strong>"VER MIS ARQUEOS"</strong>.</li>
+        <li>Se mostrará el historial completo de los arqueos que ha realizado en su sucursal, con fechas, diferencias y estatus.</li>
+    </ol>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 7. RESUMEN -->
+    <!-- ============================================================ -->
+    <h2 id="resumen">7. RESUMEN DE MI EMPRESA</h2>
+
+    <h3>7.1 Acceso</h3>
+    <p>Desde el menú lateral, haga clic en <strong>"Resumen por Empresa"</strong>. Se abrirá automáticamente la vista de su sucursal (no podrá cambiar a otra).</p>
+
+    <h3>7.2 Indicadores Financieros</h3>
+    <p>En la parte superior encontrará tarjetas con:</p>
+    <ul>
+        <li><strong>Fondo Inicial:</strong> Monto asignado a su sucursal.</li>
+        <li><strong>Total Prestado (Activo):</strong> Suma de todos los préstamos vigentes.</li>
+        <li><strong>Total Recaudado (Activo):</strong> Monto recuperado de esos préstamos.</li>
+        <li><strong>Adeudo Actual:</strong> Saldo total pendiente de cobrar.</li>
+        <li><strong>Último Arqueo:</strong> Fecha, diferencia y estatus del último arqueo realizado.</li>
+    </ul>
+
+    <h3>7.3 Tabla de Empleados con Préstamo Vigente</h3>
+    <p>La tabla muestra todos los empleados de su sucursal con préstamos activos, incluyendo:</p>
+    <ul>
+        <li>ID Empleado</li>
+        <li>Nómina</li>
+        <li>Nombre</li>
+        <li>Departamento</li>
+        <li>Puesto</li>
+        <li>Préstamo Inicial</li>
+        <li>Recuperado</li>
+        <li>Saldo Pendiente</li>
+        <li>Acciones:
+            <ul>
+                <li><span class="icono">📖</span> <strong>Kardex individual</strong></li>
+                <li><span class="icono">🔍</span> <strong>Auditar abonos</strong> – solo consulta, no puede editar.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>7.4 Exportación</h3>
+    <p>Puede exportar el resumen a <strong>PDF</strong> (imprimir) o a <strong>Excel</strong> usando los botones correspondientes.</p>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 8. ARQUEOS -->
+    <!-- ============================================================ -->
+    <h2 id="arqueos">8. ARQUEOS DE CAJA</h2>
+
+    <h3>8.1 ¿Qué es el Arqueo de Caja?</h3>
+    <p>Es el proceso de verificar que el efectivo físico que tiene en la caja coincide con el saldo registrado en el sistema.</p>
+
+    <h3>8.2 ¿Cuándo debo hacerlo?</h3>
+    <ul>
+        <li><strong>Obligatorio una vez por semana</strong> (el sistema se lo recordará al inicio de cada semana).</li>
+        <li>Si no lo realiza, el sistema bloqueará algunas operaciones hasta que lo complete.</li>
+    </ul>
+
+    <h3>8.3 Realizar un Arqueo</h3>
+    <ol>
+        <li>Cuando el sistema muestre la alerta roja <strong>"¡ARQUEO SEMANAL OBLIGATORIO!"</strong>, haga clic en <strong>"REALIZAR ARQUEO AHORA"</strong>.</li>
+        <li>También puede iniciar un arqueo voluntario desde el botón <strong>"Arqueo"</strong> en la vista de "Resumen por Empresa" (solo si el administrador lo ha habilitado).</li>
+        <li>En el modal que aparece:
+            <ul>
+                <li>Verifique el <strong>Fondo Teórico en Sistema</strong> (el saldo esperado según el sistema).</li>
+                <li>Ingrese la cantidad de billetes de cada denominación ($1,000, $500, $200, $100, $50, $20) y el monto total en monedas.</li>
+                <li>El sistema calculará automáticamente el <strong>Total Físico</strong> y la <strong>Diferencia</strong>.</li>
+            </ul>
+        </li>
+        <li>Si lo desea, agregue <strong>Observaciones</strong> (por ejemplo, justificar una diferencia).</li>
+        <li>Haga clic en <strong>"GUARDAR ARQUEO DEFINITIVO"</strong>.</li>
+    </ol>
+
+    <div class="note-box info">
+        <strong>ℹ️ Información:</strong> La diferencia se muestra en tres colores: <span style="color:#28a745;">verde</span> (cuadrado), <span style="color:#ffc107;">amarillo</span> (sobrante) o <span style="color:#dc3545;">rojo</span> (faltante).
+    </div>
+
+    <h3>8.4 Historial de Arqueos</h3>
+    <p>Puede consultar todos los arqueos anteriores desde "Reportes" &gt; "VER MIS ARQUEOS". Allí verá:</p>
+    <ul>
+        <li>Fecha y hora</li>
+        <li>Semana</li>
+        <li>Fondo sistema</li>
+        <li>Efectivo físico contado</li>
+        <li>Diferencia</li>
+        <li>Estatus (Cuadrado / Sobrante / Faltante)</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 9. MANUAL -->
+    <!-- ============================================================ -->
+    <h2 id="manual">9. MANUAL DE AYUDA</h2>
+
+    <h3>9.1 Acceso</h3>
+    <p>Desde el menú lateral, haga clic en <strong>"Manual de Ayuda"</strong>.</p>
+
+    <h3>9.2 Visualización</h3>
+    <p>Se abrirá este mismo manual en formato PDF, el cual puede guardar o imprimir para referencia futura.</p>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 10. CIERRE -->
+    <!-- ============================================================ -->
+    <h2 id="salir">10. CIERRE DE SESIÓN</h2>
+
+    <p>Para finalizar su trabajo, haga clic en el botón <strong>"Salir"</strong> en la parte inferior del menú lateral. Esto cerrará su sesión de forma segura.</p>
+
+    <div class="note-box tip">
+        <strong>💡 Recomendación:</strong> Siempre cierre sesión al terminar, especialmente si está usando un equipo compartido.
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 11. GLOSARIO -->
+    <!-- ============================================================ -->
+    <h2 id="glosario">11. GLOSARIO DE TÉRMINOS</h2>
+
+    <table>
+        <thead><tr><th>Término</th><th>Definición</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Abono</strong></td><td>Pago parcial o total de un préstamo.</td></tr>
+            <tr><td><strong>Arqueo de Caja</strong></td><td>Verificación del efectivo físico contra el saldo del sistema.</td></tr>
+            <tr><td><strong>Cargo Inicial</strong></td><td>Registro del desembolso del préstamo.</td></tr>
+            <tr><td><strong>Diferencia</strong></td><td>Resultado de comparar el efectivo físico con el saldo del sistema (sobrante o faltante).</td></tr>
+            <tr><td><strong>Fondo Inicial</strong></td><td>Monto asignado a la caja de su sucursal.</td></tr>
+            <tr><td><strong>Kardex</strong></td><td>Historial detallado de movimientos de un préstamo.</td></tr>
+            <tr><td><strong>Nómina</strong></td><td>Número de identificación del empleado.</td></tr>
+            <tr><td><strong>Sucursal</strong></td><td>Su sede de trabajo (TACUBA, BOMBILLA, RESTORANES, NAPOLES, BRIGAR o BGARI).</td></tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================ -->
+    <!-- 12. SOPORTE -->
+    <!-- ============================================================ -->
+    <h2 id="soporte">12. SOPORTE TÉCNICO</h2>
+
+    <h3>12.1 Contacto</h3>
+    <ul>
+        <li><strong>Administrador del Sistema:</strong> SISTEMAS</li>
+        <li><strong>Correo:</strong> sistemas@elcardenal.com</li>
+        <li><strong>Teléfono:</strong> (55) 1234-5678</li>
+    </ul>
+
+    <h3>12.2 Reporte de Problemas</h3>
+    <p>Si encuentra algún error o tiene dudas, comuníquese con el administrador. Proporcione el mayor detalle posible (fecha, hora, acción que realizaba, mensaje de error si aparece).</p>
+
+    <!-- ============================================================ -->
+    <!-- PIE DE PÁGINA -->
+    <!-- ============================================================ -->
+    <div class="footer-doc">
+        <span>© 2026 El Cardenal – Sistema de Préstamos</span>
+        <span>Versión 1.0 – Julio 2026</span>
+        <span>Manual exclusivo para usuarios de sucursal</span>
+    </div>
+
+</div>
+<!-- fin document-wrapper -->
+
+</body>
+</html>

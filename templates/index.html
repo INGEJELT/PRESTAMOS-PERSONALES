@@ -40,24 +40,18 @@
         <a href="/graficas" class="btn btn-outline-info border-0 py-2 text-start">
             <i class="fas fa-chart-bar me-2"></i> {% if admin %}Gráficas por Sede{% else %}Mi Gráfica{% endif %}
         </a>
-        {% if admin %}
         <a href="/resumen_empresa" class="btn btn-outline-primary border-0 py-2 text-start">
             <i class="fas fa-building me-2"></i> Resumen por Empresa
         </a>
-        {% endif %}
-        <a href="{{ url_for('static', filename='manual_prestamos.pdf') }}" target="_blank" class="btn btn-outline-light border-0 py-2">
+        <!-- Manual de Ayuda con ruta dinámica según rol -->
+        <a href="/manual_ayuda" target="_blank" class="btn btn-outline-light border-0 py-2">
             <i class="fas fa-book me-2 text-warning"></i> Manual de Ayuda
         </a>
         {% if admin %}
         <button class="btn btn-outline-info border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalUsuarios"><i class="fas fa-users-cog me-2"></i> Usuarios</button>
-        
-        {% if admin %}
         <a href="/ver_sesiones" class="btn btn-outline-warning border-0 py-2 text-start"><i class="fas fa-desktop me-2"></i> Sesiones Activas</a>
-        {% endif %}
         <button class="btn btn-outline-success border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalExcel"><i class="fas fa-file-excel me-2"></i> Importar Masiva</button>
-        <button class="btn btn-outline-secondary border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalSincronizar">
-            <i class="fas fa-sync-alt me-2"></i> Sincronizar Empleados
-        </button>
+        <button class="btn btn-outline-secondary border-0 py-2" data-bs-toggle="modal" data-bs-target="#modalSincronizar"><i class="fas fa-sync-alt me-2"></i> Sincronizar Empleados</button>
         <button class="btn btn-warning text-dark fw-bold btn-sm mt-4 shadow" data-bs-toggle="modal" data-bs-target="#modalAnio"><i class="fas fa-sync-alt me-2"></i> TRASPASO ANUAL</button>
         {% endif %}
         <hr class="opacity-25 mt-5">
